@@ -11,12 +11,22 @@ export function useGSTForm() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       return saved ? { ...INITIAL_STATE, ...JSON.parse(saved) } : INITIAL_STATE;
-    } catch { return INITIAL_STATE; }
+    } catch {
+      return INITIAL_STATE;
+    }
   });
 
   const [contactInfo] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("gst_contact")) || { mobile: "", email: "" }; }
-    catch { return { mobile: "", email: "" }; }
+    try {
+      return (
+        JSON.parse(localStorage.getItem("gst_contact")) || {
+          mobile: "",
+          email: "",
+        }
+      );
+    } catch {
+      return { mobile: "", email: "" };
+    }
   });
 
   const [errors, setErrors] = useState({});
@@ -29,8 +39,11 @@ export function useGSTForm() {
 
   // Auto-save to localStorage on every formData change
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(formData)); }
-    catch { /* ignore quota errors */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    } catch {
+      /* ignore quota errors */
+    }
   }, [formData]);
 
   const computeErrors = useCallback((data) => {
@@ -42,11 +55,14 @@ export function useGSTForm() {
     return errs;
   }, []);
 
-  const getTabErrors = useCallback((tabIdx, data) => {
-    const fields = TAB_REQUIRED_FIELDS[tabIdx] || [];
-    const errs = computeErrors(data);
-    return fields.filter((field) => errs[field]);
-  }, [computeErrors]);
+  const getTabErrors = useCallback(
+    (tabIdx, data) => {
+      const fields = TAB_REQUIRED_FIELDS[tabIdx] || [];
+      const errs = computeErrors(data);
+      return fields.filter((field) => errs[field]);
+    },
+    [computeErrors]
+  );
 
   const update = useCallback((name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -54,13 +70,16 @@ export function useGSTForm() {
     setErrors((prev) => ({ ...prev, [name]: err }));
   }, []);
 
-  const touch = useCallback((name) => {
-    setTouched((prev) => ({ ...prev, [name]: true }));
-    setErrors((prev) => ({
-      ...prev,
-      [name]: validateField(name, formData[name]),
-    }));
-  }, [formData]);
+  const touch = useCallback(
+    (name) => {
+      setTouched((prev) => ({ ...prev, [name]: true }));
+      setErrors((prev) => ({
+        ...prev,
+        [name]: validateField(name, formData[name]),
+      }));
+    },
+    [formData]
+  );
 
   const applyAutoFill = useCallback((autoFilled) => {
     if (autoFilled && Object.keys(autoFilled).length > 0) {
@@ -68,34 +87,44 @@ export function useGSTForm() {
     }
   }, []);
 
-  const touchAllInTab = useCallback((tabIdx) => {
-    const fields = TAB_REQUIRED_FIELDS[tabIdx] || [];
-    const newTouched = {};
-    fields.forEach((f) => { newTouched[f] = true; });
-    setTouched((prev) => ({ ...prev, ...newTouched }));
-    const errs = computeErrors(formData);
-    const newErrors = {};
-    fields.forEach((f) => { if (errs[f]) newErrors[f] = errs[f]; });
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-    return fields.filter((f) => errs[f]).length;
-  }, [formData, computeErrors]);
+  const touchAllInTab = useCallback(
+    (tabIdx) => {
+      const fields = TAB_REQUIRED_FIELDS[tabIdx] || [];
+      const newTouched = {};
+      fields.forEach((f) => {
+        newTouched[f] = true;
+      });
+      setTouched((prev) => ({ ...prev, ...newTouched }));
+      const errs = computeErrors(formData);
+      const newErrors = {};
+      fields.forEach((f) => {
+        if (errs[f]) newErrors[f] = errs[f];
+      });
+      setErrors((prev) => ({ ...prev, ...newErrors }));
+      return fields.filter((f) => errs[f]).length;
+    },
+    [formData, computeErrors]
+  );
 
-  const handleSaveContinue = useCallback((activeTab, totalTabs) => {
-    const errCount = touchAllInTab(activeTab);
-    if (errCount > 0) {
-      setShowTabWarning(true);
-      setTimeout(() => setShowTabWarning(false), 3000);
-      return false;
-    }
-    setTabStatus((prev) => ({ ...prev, [activeTab]: "complete" }));
-    if (activeTab < totalTabs - 1) {
-      setActiveTab(activeTab + 1);
-    } else {
-      navigate("/review");
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    return true;
-  }, [touchAllInTab, navigate]);
+  const handleSaveContinue = useCallback(
+    (activeTab, totalTabs) => {
+      const errCount = touchAllInTab(activeTab);
+      if (errCount > 0) {
+        setShowTabWarning(true);
+        setTimeout(() => setShowTabWarning(false), 3000);
+        return false;
+      }
+      setTabStatus((prev) => ({ ...prev, [activeTab]: "complete" }));
+      if (activeTab < totalTabs - 1) {
+        setActiveTab(activeTab + 1);
+      } else {
+        navigate("/review");
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return true;
+    },
+    [touchAllInTab, navigate]
+  );
 
   const handleSubmit = useCallback(async () => {
     touchAllInTab(10);
@@ -108,14 +137,28 @@ export function useGSTForm() {
 
     try {
       await submitGSTForm(formData, contactInfo);
+
+      // Save data for success page summary before clearing
+      localStorage.setItem(
+        STORAGE_KEY + "_submitted",
+        JSON.stringify(formData)
+      );
+
       // Clear all session data on success
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("gst_stage");
-      localStorage.removeItem("gst_contact");
-      localStorage.removeItem("gst_otp_verified");
+      // Keep contact and verified status briefly for the success page if needed,
+      // but SubmittedPage clears them on "Start New" anyway.
+      // Actually, SubmittedPage needs gst_contact too.
+      // localStorage.removeItem("gst_contact"); // Don't remove yet
+      // localStorage.removeItem("gst_otp_verified");
+
       navigate("/submitted");
     } catch (err) {
-      setApiError(err.message || "Failed to submit. Please check your connection and try again.");
+      setApiError(
+        err.message ||
+          "Failed to submit. Please check your connection and try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -135,10 +178,23 @@ export function useGSTForm() {
   }, [navigate]);
 
   return {
-    formData, contactInfo, errors, touched, tabStatus,
-    activeTab, setActiveTab, isSubmitting, apiError,
-    showTabWarning, update, touch, applyAutoFill,
-    handleSaveContinue, handleSubmit, resetForm,
-    getTabErrors, computeErrors,
+    formData,
+    contactInfo,
+    errors,
+    touched,
+    tabStatus,
+    activeTab,
+    setActiveTab,
+    isSubmitting,
+    apiError,
+    showTabWarning,
+    update,
+    touch,
+    applyAutoFill,
+    handleSaveContinue,
+    handleSubmit,
+    resetForm,
+    getTabErrors,
+    computeErrors,
   };
 }

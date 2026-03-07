@@ -31,7 +31,11 @@ export const extractDocument = async (docType, fileBase64, mimeType) => {
  */
 export const submitGSTForm = async (formData, contactInfo) => {
   const payload = buildPayload(formData, contactInfo);
-  const { data } = await apiClient.post(ENDPOINTS.SUBMIT_FORM, payload);
+  const wrappedPayload = {
+    form_key: "gst_registration",
+    form_data: payload,
+  };
+  const { data } = await apiClient.post(ENDPOINTS.SUBMIT_FORM, wrappedPayload);
   return data;
 };
 
@@ -60,10 +64,12 @@ function buildPayload(f, contact) {
     reason: f.reason,
     commencement_date: toISODate(f.commencement_date),
     commencement_date_1: toISODate(f.commencement_date_1),
-    existing_registrations_list: (f.existing_registrations_list || []).map((r) => ({
-      ...r,
-      date: toISODate(r.date),
-    })),
+    existing_registrations_list: (f.existing_registrations_list || []).map(
+      (r) => ({
+        ...r,
+        date: toISODate(r.date),
+      })
+    ),
     file: f.file,
     proof_of_constitution: f.proof_of_constitution,
     constitution_document: f.constitution_document,
@@ -113,7 +119,7 @@ function buildPayload(f, contact) {
     mobile_2: f.mobile_2,
     email_2: f.email_2,
     telephone_2: f.telephone_2,
-    radiogroup_2_promoter: f.radiogroup_2_promoter || null,  // ← was missing before
+    radiogroup_2_promoter: f.radiogroup_2_promoter || null, // ← was missing before
     designation_2: f.designation_2,
     din_2: f.din_2,
     toggle_2_2: f.toggle_2_2,
