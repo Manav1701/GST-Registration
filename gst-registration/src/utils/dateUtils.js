@@ -29,6 +29,26 @@ export const toISODate = (val) => {
 };
 
 /**
+ * Converts YYYY-MM-DD to DD/MM/YYYY for backend submission.
+ */
+export const toBackendDate = (val) => {
+  if (!val) return null;
+  const str = String(val).trim();
+
+  // YYYY-MM-DD Match
+  const ymdMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymdMatch) {
+    const [, y, m, d] = ymdMatch;
+    return `${d}/${m}/${y}`;
+  }
+
+  // Already DD/MM/YYYY — pass through
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+
+  return str;
+};
+
+/**
  * Returns today's date as YYYY-MM-DD string.
  */
 export const todayISO = () => {

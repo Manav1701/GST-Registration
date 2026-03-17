@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { FormInput, FormSelect, FormToggle, FormRadioGroup, SectionCard, InfoAlert, Grid2, Grid3 } from "../../../components/ui/index.jsx";
 import { FileInput } from "../../../components/ui/index.jsx";
-import { COUNTRIES } from "../../../constants/dropdowns.js";
+import { COUNTRIES, INDIAN_STATES, DISTRICT_MAP, PIN_DATA } from "../../../constants/dropdowns.js";
 
 // Shared promoter form used for both Promoter 1 (suffix="") and Promoter 2 (suffix="_2")
 // Shared promoter form used for both Promoter 1 (suffix="") and Promoter 2 (suffix="_2")
@@ -86,8 +86,21 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
     data[s("pin_code")], data[s("state_res")], data[s("district_res")], data[s("city_res")],
     data[s("locality")], data[s("road_street_res")], data[s("premises_name")],
     data[s("building_no_res")], data[s("floor_no_res")], data[s("landmark_res")],
-    data[s("photo")], update
   ]);
+
+  // PIN Code Auto-fill Logic
+  useEffect(() => {
+    const pin = data[s("pin_code")];
+    if (pin?.length === 6) {
+      const match = PIN_DATA[pin];
+      if (match) {
+        update(s("country"), "IND");
+        update(s("state_res"), match.state);
+        update(s("district_res"), match.district);
+        update(s("city_res"), match.city);
+      }
+    }
+  }, [data[s("pin_code")], update, s]);
 
   return (
     <>
@@ -139,9 +152,10 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
         </InfoAlert>
         <Grid2>
           <FormSelect label="Country" required {...sel("country")} items={COUNTRIES}/>
-          <FormInput label="PIN Code" required {...f("pin_code")} placeholder="6-digit PIN" hint="Auto-fills state/city"/>
-          <FormInput label="State" required {...f("state_res")} placeholder="State"/>
-          <FormInput label="District" required {...f("district_res")} placeholder="District"/>
+          <FormInput label="PIN Code" required {...f("pin_code")} placeholder="6-digit PIN" hint="Type 380001 to test auto-fill"/>
+          <FormSelect label="State" required {...sel("state_res")} items={INDIAN_STATES}
+            onChange={(e) => { update("state_res", e.target.value); update("district_res", ""); }} />
+          <FormSelect label="District" required {...sel("district_res")} items={DISTRICT_MAP[data.state_res] || []} disabled={!data.state_res}/>
           <FormInput label="City / Town / Village" required {...f("city_res")} placeholder="City or town"/>
           <FormInput label="Locality / Sub Locality" {...f("locality")} placeholder="Locality or sub-locality"/>
           <FormInput label="Road / Street" required {...f("road_street_res")} placeholder="Road or street name"/>

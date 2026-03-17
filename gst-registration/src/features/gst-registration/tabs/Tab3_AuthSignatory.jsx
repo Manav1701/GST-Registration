@@ -1,10 +1,24 @@
+import { useEffect } from "react";
 import { FormInput, FormSelect, FormToggle, FormRadioGroup, FormCheckbox, SectionCard, InfoAlert, Grid2, Grid3 } from "../../../components/ui/index.jsx";
 import { FileInput } from "../../../components/ui/index.jsx";
-import { COUNTRIES, AUTH_SIGNATORY_PROOF } from "../../../constants/dropdowns.js";
+import { COUNTRIES, AUTH_SIGNATORY_PROOF, INDIAN_STATES, DISTRICT_MAP, PIN_DATA } from "../../../constants/dropdowns.js";
 
 export default function Tab3_AuthSignatory({ data, update, errors, touched, touch }) {
   const f = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
   const sel = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
+
+  // PIN Code Auto-fill Logic
+  useEffect(() => {
+    if (data.as_pin?.length === 6) {
+      const match = PIN_DATA[data.as_pin];
+      if (match) {
+        update("as_country", "IND");
+        update("as_state", match.state);
+        update("as_district", match.district);
+        update("as_city", match.city);
+      }
+    }
+  }, [data.as_pin, update]);
 
   return (
     <>
@@ -51,9 +65,10 @@ export default function Tab3_AuthSignatory({ data, update, errors, touched, touc
         <InfoAlert>i. Address validations are mandatory in the GST system.<br/>ii. Ensure addresses match your proof documents exactly.</InfoAlert>
         <Grid2>
           <FormSelect label="Country" value={data.as_country} onChange={(e)=>update("as_country",e.target.value)} items={COUNTRIES}/>
-          <FormInput label="PIN Code" required {...f("as_pin")} placeholder="6-digit PIN"/>
-          <FormInput label="State" value={data.as_state??""} onChange={(e)=>update("as_state",e.target.value||null)} placeholder="State"/>
-          <FormInput label="District" value={data.as_district??""} onChange={(e)=>update("as_district",e.target.value||null)} placeholder="District"/>
+          <FormInput label="PIN Code" required {...f("as_pin")} placeholder="6-digit PIN" hint="Type 380001 for test"/>
+          <FormSelect label="State" {...sel("as_state")} items={INDIAN_STATES}
+            onChange={(e) => { update("as_state", e.target.value); update("as_district", ""); }} />
+          <FormSelect label="District" {...sel("as_district")} items={DISTRICT_MAP[data.as_state] || []} disabled={!data.as_state}/>
           <FormInput label="City / Town / Village" value={data.as_city??""} onChange={(e)=>update("as_city",e.target.value||null)} placeholder="City"/>
           <FormInput label="Locality / Sub Locality" value={data.as_locality??""} onChange={(e)=>update("as_locality",e.target.value||null)} placeholder="Locality"/>
           <FormInput label="Road / Street" value={data.as_road??""} onChange={(e)=>update("as_road",e.target.value||null)} placeholder="Road or street"/>

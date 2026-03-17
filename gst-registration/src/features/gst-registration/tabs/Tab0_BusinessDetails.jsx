@@ -1,5 +1,5 @@
 import { FormInput, FormSelect, FormToggle, FormRadioGroup, SectionCard, InfoAlert, Grid2, Grid3, DynamicList } from "../../../components/ui/index.jsx";
-import { CONSTITUTION_TYPES, REGISTRATION_REASONS, GUJARAT_DISTRICTS, REG_TYPES, PROOF_OF_CONSTITUTION } from "../../../constants/dropdowns.js";
+import { CONSTITUTION_TYPES, REGISTRATION_REASONS, DISTRICT_MAP, REG_TYPES, PROOF_OF_CONSTITUTION, INDIAN_STATES } from "../../../constants/dropdowns.js";
 import { FileInput } from "../../../components/ui/index.jsx";
 
 export default function Tab0_BusinessDetails({ data, update, errors, touched, touch }) {
@@ -21,9 +21,9 @@ export default function Tab0_BusinessDetails({ data, update, errors, touched, to
 
       <SectionCard title="Location" icon="📍">
         <Grid2>
-          {/* state — editable (was readOnly before, now fixed) */}
-          <FormInput label="Name of the State" required {...f("state")} placeholder="e.g. Gujarat"/>
-          <FormSelect label="District" required {...sel("District")} items={GUJARAT_DISTRICTS}/>
+          <FormSelect label="Name of the State" required {...sel("state")} items={INDIAN_STATES} 
+            onChange={(e) => { update("state", e.target.value); update("District", ""); }} />
+          <FormSelect label="District" required {...sel("District")} items={DISTRICT_MAP[data.state] || []} disabled={!data.state}/>
         </Grid2>
       </SectionCard>
 

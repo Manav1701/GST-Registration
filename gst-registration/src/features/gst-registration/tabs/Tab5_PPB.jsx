@@ -1,22 +1,41 @@
+import { useEffect } from "react";
 import { FormInput, FormSelect, FormToggle, SectionCard, InfoAlert, Grid2, Grid3 } from "../../../components/ui/index.jsx";
 import { FileInput } from "../../../components/ui/index.jsx";
 import BusinessActivityCheckboxes from "../../../components/shared/BusinessActivityCheckboxes.jsx";
-import { GHATAK_ITEMS, POSSESSION_TYPES, PROOF_OF_PREMISES } from "../../../constants/dropdowns.js";
+import { GHATAK_ITEMS, POSSESSION_TYPES, PROOF_OF_PREMISES, INDIAN_STATES, DISTRICT_MAP, PIN_DATA } from "../../../constants/dropdowns.js";
 
 export default function Tab5_PPB({ data, update, errors, touched, touch }) {
   const f = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
   const sel = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
 
+  // PIN Code Auto-fill Logic
+  useEffect(() => {
+    if (data.ppb_pin?.length === 6) {
+      const match = PIN_DATA[data.ppb_pin];
+      if (match) {
+        update("ppb_state", match.state);
+        update("ppb_district", match.district);
+        update("ppb_city", match.city);
+      }
+    }
+  }, [data.ppb_pin, update]);
+
   return (
     <>
       <SectionCard title="Address Details" icon="🗺️">
         <InfoAlert>i. Mandatory address validations apply in the GST system.<br/>ii. Ensure addresses match your proof documents exactly.</InfoAlert>
-        <div style={{ background:"#F1F5F9", borderRadius:8, padding:14, marginBottom:18, textAlign:"center", color:"#64748B", fontSize:12.5 }}>📍 Map integration — drag marker to set location (MapMyIndia)</div>
+        <div style={{ background:"#F1F5F9", borderRadius:8, padding:14, marginBottom:18, textAlign:"center", color:"#64748B", fontSize:12.5, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+          📍 Map integration — drag marker to set location
+          <button type="button" onClick={() => { update("ppb_lat", "23.0225"); update("ppb_long", "72.5714"); }}
+            style={{ padding:"4px 10px", background:"#1B4FD8", color:"#fff", border:"none", borderRadius:6, fontSize:11, fontWeight:600, cursor:"pointer" }}>
+            Set Current Location
+          </button>
+        </div>
         <Grid2>
-          <FormInput label="PIN Code" required {...f("ppb_pin")} placeholder="6-digit PIN"/>
-          {/* ppb_state — editable (was readOnly before, now fixed) */}
-          <FormInput label="State" required {...f("ppb_state")} placeholder="e.g. Gujarat"/>
-          <FormInput label="District" value={data.ppb_district??""} onChange={(e)=>update("ppb_district",e.target.value||null)} placeholder="District"/>
+          <FormInput label="PIN Code" required {...f("ppb_pin")} placeholder="6-digit PIN" hint="Type 380001 for auto-fill test"/>
+          <FormSelect label="State" required {...sel("ppb_state")} items={INDIAN_STATES}
+            onChange={(e) => { update("ppb_state", e.target.value); update("ppb_district", ""); }} />
+          <FormSelect label="District" {...sel("ppb_district")} items={DISTRICT_MAP[data.ppb_state] || []} disabled={!data.ppb_state}/>
           <FormInput label="City / Town / Village" value={data.ppb_city??""} onChange={(e)=>update("ppb_city",e.target.value||null)} placeholder="City or town"/>
           <FormInput label="Locality / Sub Locality" value={data.ppb_locality} onChange={(e)=>update("ppb_locality",e.target.value)} placeholder="Locality"/>
           <FormInput label="Road / Street" value={data.ppb_road} onChange={(e)=>update("ppb_road",e.target.value)} placeholder="Road or street"/>
@@ -42,6 +61,12 @@ export default function Tab5_PPB({ data, update, errors, touched, touch }) {
       </SectionCard>
 
       <SectionCard title="Contact Information" icon="📞">
+        <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:10 }}>
+          <button type="button" onClick={() => { update("ppb_email", data.email); update("ppb_mobile", data.mobile); }}
+            style={{ fontSize:11.5, color:"#1B4FD8", fontWeight:700, background:"#EEF4FF", border:"1px solid #C7D9FF", padding:"5px 12px", borderRadius:6, cursor:"pointer" }}>
+            📋 Copy from Promoter 1
+          </button>
+        </div>
         <Grid2>
           <FormInput label="Office Email Address" value={data.ppb_email??""} onChange={(e)=>update("ppb_email",e.target.value||null)} placeholder="office@example.com"/>
           <FormInput label="Office Telephone (with STD Code)" value={data.ppb_office_tel} onChange={(e)=>update("ppb_office_tel",e.target.value)} placeholder="e.g. 079-26543210"/>
@@ -52,13 +77,34 @@ export default function Tab5_PPB({ data, update, errors, touched, touch }) {
 
       <SectionCard title="Nature of Possession" icon="🔑">
         <Grid2>
-          <FormSelect label="Nature of possession of premises" required {...sel("ppb_possession_type")} items={POSSESSION_TYPES}/>
-          <FormSelect label="Proof of Place of Business" required {...sel("ppb_proof_doc")} items={PROOF_OF_PREMISES}/>
+          <FormSelect label="Nature of possession of premises" required {...sel("ppb_possession_type")} items={POSSESSION_TYPES} 
+            onChange={(e) => { update("ppb_possession_type", e.target.value); update("ppb_proof_doc", ""); }} />
+          
+          <FormSelect label="Proof of Place of Business" required {...sel("ppb_proof_doc")} 
+            items={PROOF_OF_PREMISES.filter(p => {
+              if (data.ppb_possession_type === "REN") return ["RLAT", "RNOC", "ELCB"].includes(p.value);
+              if (data.ppb_possession_type === "OWN") return ["LOWN", "TAXR", "CMUK", "ELCB"].includes(p.value);
+              if (data.ppb_possession_type === "CON") return ["CNLR", "ELCB"].includes(p.value);
+              return true;
+            })}
+            disabled={!data.ppb_possession_type}
+            hint={!data.ppb_possession_type ? "Select possession type first" : "Suggested based on possession"} />
         </Grid2>
         <FileInput label="Upload Document (PDF/JPEG, max 1MB)" value={data.ppb_file} onChange={(v)=>update("ppb_file",v)}/>
       </SectionCard>
 
       <SectionCard title="Nature of Business Activity at Principal Place" icon="💼">
+        <div style={{ marginBottom:14 }}>
+          {data.reason === "ECOM" && !data.ba_retail && (
+            <InfoAlert type="warning">Since you selected E-Commerce reason, you might want to check <b>Retail Business</b> or <b>Warehouse</b>.</InfoAlert>
+          )}
+          {(data.reason === "INSS" || data.reason === "CRTH") && (
+            <button type="button" onClick={() => { update("ba_retail", true); update("ba_office", true); }}
+              style={{ fontSize:11, color:"#059669", background:"#F0FDF4", border:"1px solid #BBF7D0", padding:"4px 10px", borderRadius:4, cursor:"pointer", marginBottom:8 }}>
+              💡 Auto-select common activities
+            </button>
+          )}
+        </div>
         <BusinessActivityCheckboxes data={data} update={update} prefix="ba_"/>
       </SectionCard>
 

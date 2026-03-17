@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import ReviewSection from "../components/shared/ReviewSection.jsx";
 import { useGSTForm } from "../hooks/useGSTForm.js";
-import { CONSTITUTION_TYPES, GUJARAT_DISTRICTS, REGISTRATION_REASONS, POSSESSION_TYPES, PROOF_OF_PREMISES, ELECTRICITY_BOARDS } from "../constants/dropdowns.js";
+import { CONSTITUTION_TYPES, DISTRICT_MAP, REGISTRATION_REASONS, POSSESSION_TYPES, PROOF_OF_PREMISES, ELECTRICITY_BOARDS, COUNTRIES, INDIAN_STATES } from "../constants/dropdowns.js";
 
 export default function ReviewPage() {
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ export default function ReviewPage() {
         { label:"Constitution", value:getLabel(CONSTITUTION_TYPES,formData["Constitution of Business"]) },
         { label:"Trade Name", value:formData.trade_name },
         { label:"State", value:formData.state },
-        { label:"District", value:getLabel(GUJARAT_DISTRICTS,formData.District) },
+        { label:"District", value:getLabel(DISTRICT_MAP[formData.state] || [], formData.District) },
         { label:"Reason to Register", value:getLabel(REGISTRATION_REASONS,formData.reason) },
         { label:"Commencement Date", value:formData.commencement_date },
         { label:"Liability Date", value:formData.commencement_date_1 },
@@ -49,7 +49,7 @@ export default function ReviewPage() {
       <ReviewSection title="Residential Address" icon="🏠" rows={[
         { label:"PIN Code", value:formData.pin_code },
         { label:"State", value:formData.state_res },
-        { label:"District", value:formData.district_res },
+        { label:"District", value:getLabel(DISTRICT_MAP[formData.state_res] || [], formData.district_res) },
         { label:"City", value:formData.city_res },
         { label:"Road / Street", value:formData.road_street_res },
         { label:"Building No.", value:formData.building_no_res },
@@ -62,11 +62,17 @@ export default function ReviewPage() {
         { label:"Email", value:formData.as_email },
         { label:"Designation", value:formData.as_designation },
         { label:"PAN", value:formData.as_pan },
+        { label:"Country", value:getLabel(COUNTRIES, formData.as_country) },
         { label:"PIN Code", value:formData.as_pin },
+        { label:"State", value:getLabel(INDIAN_STATES, formData.as_state) },
+        { label:"District", value:getLabel(DISTRICT_MAP[formData.as_state] || [], formData.as_district) },
+        { label:"City", value:formData.as_city },
+        { label:"Road / Street", value:formData.as_road },
       ]}/>
       <ReviewSection title="Principal Place of Business" icon="🏬" rows={[
         { label:"PIN Code", value:formData.ppb_pin },
         { label:"State", value:formData.ppb_state },
+        { label:"District", value:getLabel(DISTRICT_MAP[formData.ppb_state] || [], formData.ppb_district) },
         { label:"Premises", value:formData.ppb_premises },
         { label:"Building No.", value:formData.ppb_bno },
         { label:"Sector / Circle", value:formData.sector_circle },
