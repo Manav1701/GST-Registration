@@ -21,38 +21,38 @@ export const FieldWrapper = ({ label, required, error, hint, children }) => (
   </div>
 );
 
-const inputBase = (error, readOnly) => ({
+const inputBase = (error, disabled) => ({
   width:"100%", padding:"10px 13px", fontSize:13.5,
   fontFamily:"'Plus Jakarta Sans', sans-serif",
-  border:`1.5px solid ${error?"#FCA5A5":readOnly?"#E2E8F0":"#CBD5E1"}`,
+  border:`1.5px solid ${error?"#FCA5A5":disabled?"#E2E8F0":"#CBD5E1"}`,
   borderRadius:8, outline:"none",
   transition:"border-color 0.15s, box-shadow 0.15s",
-  background:readOnly?"#F8FAFC":"#FFFFFF",
-  color:readOnly?"#94A3B8":"#1E293B",
-  cursor:readOnly?"not-allowed":"text",
+  background:disabled?"#F1F5F9":"#FFFFFF",
+  color:disabled?"#94A3B8":"#1E293B",
+  cursor:disabled?"not-allowed":"text",
   boxShadow:error?"0 0 0 3px rgba(220,38,38,0.08)":"none",
 });
 
-export const FormInput = ({ label, required, error, hint, readOnly, value, onChange, onBlur, placeholder, type="text" }) => (
+export const FormInput = ({ label, required, error, hint, disabled, readOnly, value, onChange, onBlur, placeholder, type="text" }) => (
   <FieldWrapper label={label} required={required} error={error} hint={hint}>
     <input
       type={type} value={value??""} onChange={onChange} onBlur={onBlur}
-      readOnly={readOnly} placeholder={placeholder} style={inputBase(error,readOnly)}
-      onFocus={(e) => { if(!readOnly){e.target.style.borderColor="#1B4FD8"; e.target.style.boxShadow="0 0 0 3px rgba(27,79,216,0.12)";} }}
+      disabled={disabled} readOnly={readOnly} placeholder={placeholder} style={inputBase(error,disabled || readOnly)}
+      onFocus={(e) => { if(!disabled && !readOnly){e.target.style.borderColor="#1B4FD8"; e.target.style.boxShadow="0 0 0 3px rgba(27,79,216,0.12)";} }}
       onBlurCapture={(e) => { e.target.style.borderColor=error?"#FCA5A5":"#CBD5E1"; e.target.style.boxShadow=error?"0 0 0 3px rgba(220,38,38,0.08)":"none"; }}
     />
   </FieldWrapper>
 );
 
-export const FormSelect = ({ label, required, error, hint, value, onChange, onBlur, items=[], placeholder="— Select —" }) => (
+export const FormSelect = ({ label, required, error, hint, disabled, value, onChange, onBlur, items=[], placeholder="— Select —" }) => (
   <FieldWrapper label={label} required={required} error={error} hint={hint}>
     <div style={{ position:"relative" }}>
-      <select value={value??""} onChange={onChange} onBlur={onBlur}
-        style={{ ...inputBase(error,false), appearance:"none", paddingRight:36, cursor:"pointer" }}>
+      <select value={value??""} onChange={onChange} onBlur={onBlur} disabled={disabled}
+        style={{ ...inputBase(error,disabled), appearance:"none", paddingRight:36, cursor:disabled?"not-allowed":"pointer" }}>
         <option value="">{placeholder}</option>
         {items.map((item,i) => <option key={i} value={item.value}>{item.label}</option>)}
       </select>
-      <svg style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", pointerEvents:"none", color:"#94A3B8" }}
+      <svg style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", pointerEvents:"none", color:disabled?"#CBD5E1":"#94A3B8" }}
         width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         <polyline points="6 9 12 15 18 9"/>
       </svg>

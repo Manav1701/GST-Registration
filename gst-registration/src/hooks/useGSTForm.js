@@ -90,6 +90,25 @@ export function useGSTForm() {
     }
   }, []);
 
+  const fetchAddressByPin = useCallback(async (pin) => {
+    if (!pin || pin.length !== 6) return null;
+    try {
+      const resp = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+      const result = await resp.json();
+      if (result?.[0]?.Status === "Success" && result[0].PostOffice?.[0]) {
+        const po = result[0].PostOffice[0];
+        return {
+          stateName: po.State,
+          district: po.District,
+          city: po.Block || po.Name,
+        };
+      }
+    } catch (err) {
+      console.warn("[fetchAddressByPin] Failed:", err.message);
+    }
+    return null;
+  }, []);
+
   const touchAllInTab = useCallback(
     (tabIdx) => {
       const fields = TAB_REQUIRED_FIELDS[tabIdx] || [];
@@ -110,23 +129,31 @@ export function useGSTForm() {
   );
 
   const handleSaveContinue = useCallback(
-    (activeTab, totalTabs) => {
-      const errCount = touchAllInTab(activeTab);
+    (activeTabIdx, totalTabs) => {
+      // Clear apb_notice error if it exists
+      if (errors.apb_notice) {
+        setErrors(prev => {
+          const { apb_notice, ...rest } = prev;
+          return rest;
+        });
+      }
+
+      const errCount = touchAllInTab(activeTabIdx);
       if (errCount > 0) {
         setShowTabWarning(true);
         setTimeout(() => setShowTabWarning(false), 3000);
         return false;
       }
-      setTabStatus((prev) => ({ ...prev, [activeTab]: "complete" }));
-      if (activeTab < totalTabs - 1) {
-        setActiveTab(activeTab + 1);
+      setTabStatus((prev) => ({ ...prev, [activeTabIdx]: "complete" }));
+      if (activeTabIdx < totalTabs - 1) {
+        setActiveTab(activeTabIdx + 1);
       } else {
         navigate("/review");
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
       return true;
     },
-    [touchAllInTab, navigate]
+    [touchAllInTab, navigate, formData.toggle_5, errors.apb_notice]
   );
 
   const handleSubmit = useCallback(async () => {
@@ -199,5 +226,6 @@ export function useGSTForm() {
     resetForm,
     getTabErrors,
     computeErrors,
+    fetchAddressByPin,
   };
 }

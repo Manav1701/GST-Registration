@@ -1,17 +1,41 @@
 import { useEffect } from "react";
 import { FormInput, FormSelect, FormToggle, FormRadioGroup, SectionCard, InfoAlert, Grid2, Grid3 } from "../../../components/ui/index.jsx";
 import { FileInput } from "../../../components/ui/index.jsx";
-import { COUNTRIES, INDIAN_STATES, DISTRICT_MAP, PIN_DATA } from "../../../constants/dropdowns.js";
+import { COUNTRIES, getStatesForCountry, getCitiesForState } from "../../../constants/dropdowns.js";
 
 // Shared promoter form used for both Promoter 1 (suffix="") and Promoter 2 (suffix="_2")
-// Shared promoter form used for both Promoter 1 (suffix="") and Promoter 2 (suffix="_2")
-export default function Tab1_Promoter({ data, update, errors, touched, touch, suffix="" }) {
+export default function Tab1_Promoter({ data, update, errors, touched, touch, suffix="", fetchAddressByPin }) {
   const s = (n) => suffix ? `${n}${suffix}` : n;
   const f = (name) => ({ value:data[s(name)], error:touched[s(name)]?errors[s(name)]:null, onChange:(e)=>update(s(name),e.target.value), onBlur:()=>touch(s(name)) });
   const sel = (name) => ({ value:data[s(name)], error:touched[s(name)]?errors[s(name)]:null, onChange:(e)=>update(s(name),e.target.value), onBlur:()=>touch(s(name)) });
 
   const isAlsoSignatoryField = s("Also Authorized Signatory");
   const isAlsoSignatory = !!data[isAlsoSignatoryField];
+
+  const countryCode = data[s("country")] || "IN";
+  const stateCode = data[s("state_res")];
+
+  const stateItems = getStatesForCountry(countryCode);
+  const districtItems = stateCode ? getCitiesForState(countryCode, stateCode) : [];
+
+  // PIN Code Auto-fill Logic (Live API for India)
+  useEffect(() => {
+    const pin = data[s("pin_code")];
+    if (pin?.length === 6 && countryCode === "IN") {
+      const loadAddress = async () => {
+        const address = await fetchAddressByPin(pin);
+        if (address) {
+          const matchedState = stateItems.find(s => s.label.toLowerCase() === address.stateName.toLowerCase());
+          if (matchedState) {
+            update(s("state_res"), matchedState.value);
+            update(s("district_res"), address.district);
+            update(s("city_res"), address.city);
+          }
+        }
+      };
+      loadAddress();
+    }
+  }, [data[s("pin_code")], update, s, countryCode, fetchAddressByPin, stateItems]);
 
   // REAL-TIME SYNC: This effect ensures that as you type in Promoter fields, 
   // the Authorized Signatory (Tab 3/Page 4) stays updated automatically.
@@ -51,30 +75,8 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
       };
 
       Object.entries(mappings).forEach(([targetKey, newValue]) => {
-        // Only trigger update if the value is actually different to prevent unnecessary re-renders
-        if (data[targetKey] !== newValue) {
-          update(targetKey, newValue);
-        }
+        if (data[targetKey] !== newValue) update(targetKey, newValue);
       });
-    } else {
-      // If user toggles to "No", we check if we should clear the fields 
-      // (only if they currently match this promoter's data to avoid clearing unique data)
-      const currentFirstName = data[s("name_first")];
-      if (currentFirstName && data.as_name_first === currentFirstName) {
-        const clears = {
-          as_name_first: "", as_name_middle: "", as_name_last: "",
-          as_father_first: "", as_father_middle: "", as_father_last: "",
-          as_dob: "", as_mobile: "", as_email: "", as_telephone: null,
-          as_designation: "", as_din: "", as_pan: "", as_passport: null, as_aadhaar: null,
-          as_pin: "", as_state: null, as_district: null, as_city: null,
-          as_locality: null, as_road: null, as_premises: null,
-          as_bno: null, as_floor: null, as_landmark: null,
-          as_photo: null, is_primary: false
-        };
-        Object.entries(clears).forEach(([k, v]) => {
-          if (data[k] !== v) update(k, v);
-        });
-      }
     }
   }, [
     isAlsoSignatory,
@@ -87,20 +89,6 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
     data[s("locality")], data[s("road_street_res")], data[s("premises_name")],
     data[s("building_no_res")], data[s("floor_no_res")], data[s("landmark_res")],
   ]);
-
-  // PIN Code Auto-fill Logic
-  useEffect(() => {
-    const pin = data[s("pin_code")];
-    if (pin?.length === 6) {
-      const match = PIN_DATA[pin];
-      if (match) {
-        update(s("country"), "IND");
-        update(s("state_res"), match.state);
-        update(s("district_res"), match.district);
-        update(s("city_res"), match.city);
-      }
-    }
-  }, [data[s("pin_code")], update, s]);
 
   return (
     <>
@@ -152,10 +140,10 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
         </InfoAlert>
         <Grid2>
           <FormSelect label="Country" required {...sel("country")} items={COUNTRIES}/>
-          <FormInput label="PIN Code" required {...f("pin_code")} placeholder="6-digit PIN" hint="Type 380001 to test auto-fill"/>
-          <FormSelect label="State" required {...sel("state_res")} items={INDIAN_STATES}
-            onChange={(e) => { update("state_res", e.target.value); update("district_res", ""); }} />
-          <FormSelect label="District" required {...sel("district_res")} items={DISTRICT_MAP[data.state_res] || []} disabled={!data.state_res}/>
+          <FormInput label="PIN Code" required {...f("pin_code")} placeholder="6-digit PIN" hint="Type 380015 to test auto-fill"/>
+          <FormSelect label="State" required {...sel("state_res")} items={stateItems}
+            onChange={(e) => { update(s("state_res"), e.target.value); update(s("district_res"), ""); }} />
+          <FormSelect label="District" required {...sel("district_res")} items={districtItems} disabled={!data[s("state_res")]}/>
           <FormInput label="City / Town / Village" required {...f("city_res")} placeholder="City or town"/>
           <FormInput label="Locality / Sub Locality" {...f("locality")} placeholder="Locality or sub-locality"/>
           <FormInput label="Road / Street" required {...f("road_street_res")} placeholder="Road or street name"/>

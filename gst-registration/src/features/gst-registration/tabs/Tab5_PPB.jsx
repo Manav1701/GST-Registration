@@ -2,23 +2,34 @@ import { useEffect } from "react";
 import { FormInput, FormSelect, FormToggle, SectionCard, InfoAlert, Grid2, Grid3 } from "../../../components/ui/index.jsx";
 import { FileInput } from "../../../components/ui/index.jsx";
 import BusinessActivityCheckboxes from "../../../components/shared/BusinessActivityCheckboxes.jsx";
-import { GHATAK_ITEMS, POSSESSION_TYPES, PROOF_OF_PREMISES, INDIAN_STATES, DISTRICT_MAP, PIN_DATA } from "../../../constants/dropdowns.js";
+import { GHATAK_ITEMS, POSSESSION_TYPES, PROOF_OF_PREMISES, getStatesForCountry, getCitiesForState } from "../../../constants/dropdowns.js";
 
-export default function Tab5_PPB({ data, update, errors, touched, touch }) {
+export default function Tab5_PPB({ data, update, errors, touched, touch, fetchAddressByPin }) {
   const f = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
   const sel = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
 
-  // PIN Code Auto-fill Logic
+  // PIN Code Auto-fill Logic (Live API)
   useEffect(() => {
     if (data.ppb_pin?.length === 6) {
-      const match = PIN_DATA[data.ppb_pin];
-      if (match) {
-        update("ppb_state", match.state);
-        update("ppb_district", match.district);
-        update("ppb_city", match.city);
-      }
+      const loadAddress = async () => {
+        const address = await fetchAddressByPin(data.ppb_pin);
+        if (address) {
+          // Find state code by name in India
+          const statesInIndia = getStatesForCountry('IN');
+          const matchedState = statesInIndia.find(s => s.label.toLowerCase() === address.stateName.toLowerCase());
+          if (matchedState) {
+            update("ppb_state", matchedState.value);
+            update("ppb_district", address.district);
+            update("ppb_city", address.city);
+          }
+        }
+      };
+      loadAddress();
     }
-  }, [data.ppb_pin, update]);
+  }, [data.ppb_pin, update, fetchAddressByPin]);
+
+  const stateItems = getStatesForCountry('IN');
+  const districtItems = data.ppb_state ? getCitiesForState('IN', data.ppb_state) : [];
 
   return (
     <>
@@ -32,10 +43,10 @@ export default function Tab5_PPB({ data, update, errors, touched, touch }) {
           </button>
         </div>
         <Grid2>
-          <FormInput label="PIN Code" required {...f("ppb_pin")} placeholder="6-digit PIN" hint="Type 380001 for auto-fill test"/>
-          <FormSelect label="State" required {...sel("ppb_state")} items={INDIAN_STATES}
+          <FormInput label="PIN Code" required {...f("ppb_pin")} placeholder="6-digit PIN" hint="Type 380015 for live auto-fill test"/>
+          <FormSelect label="State" required {...sel("ppb_state")} items={stateItems}
             onChange={(e) => { update("ppb_state", e.target.value); update("ppb_district", ""); }} />
-          <FormSelect label="District" {...sel("ppb_district")} items={DISTRICT_MAP[data.ppb_state] || []} disabled={!data.ppb_state}/>
+          <FormSelect label="District" {...sel("ppb_district")} items={districtItems} disabled={!data.ppb_state}/>
           <FormInput label="City / Town / Village" value={data.ppb_city??""} onChange={(e)=>update("ppb_city",e.target.value||null)} placeholder="City or town"/>
           <FormInput label="Locality / Sub Locality" value={data.ppb_locality} onChange={(e)=>update("ppb_locality",e.target.value)} placeholder="Locality"/>
           <FormInput label="Road / Street" value={data.ppb_road} onChange={(e)=>update("ppb_road",e.target.value)} placeholder="Road or street"/>

@@ -1,10 +1,13 @@
 import { FormInput, FormSelect, FormToggle, FormRadioGroup, SectionCard, InfoAlert, Grid2, Grid3, DynamicList } from "../../../components/ui/index.jsx";
-import { CONSTITUTION_TYPES, REGISTRATION_REASONS, DISTRICT_MAP, REG_TYPES, PROOF_OF_CONSTITUTION, INDIAN_STATES } from "../../../constants/dropdowns.js";
+import { CONSTITUTION_TYPES, REGISTRATION_REASONS, REG_TYPES, PROOF_OF_CONSTITUTION, getStatesForCountry, getCitiesForState } from "../../../constants/dropdowns.js";
 import { FileInput } from "../../../components/ui/index.jsx";
 
 export default function Tab0_BusinessDetails({ data, update, errors, touched, touch }) {
   const f = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
   const sel = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
+
+  const stateItems = getStatesForCountry('IN');
+  const districtItems = data.state ? getCitiesForState('IN', data.state) : [];
 
   return (
     <>
@@ -21,9 +24,9 @@ export default function Tab0_BusinessDetails({ data, update, errors, touched, to
 
       <SectionCard title="Location" icon="📍">
         <Grid2>
-          <FormSelect label="Name of the State" required {...sel("state")} items={INDIAN_STATES} 
+          <FormSelect label="Name of the State" required {...sel("state")} items={stateItems} 
             onChange={(e) => { update("state", e.target.value); update("District", ""); }} />
-          <FormSelect label="District" required {...sel("District")} items={DISTRICT_MAP[data.state] || []} disabled={!data.state}/>
+          <FormSelect label="District" required {...sel("District")} items={districtItems} disabled={!data.state}/>
         </Grid2>
       </SectionCard>
 

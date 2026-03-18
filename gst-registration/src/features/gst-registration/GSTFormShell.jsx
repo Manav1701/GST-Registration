@@ -22,6 +22,7 @@ export default function GSTFormShell() {
     formData, contactInfo, errors, touched, tabStatus,
     activeTab, setActiveTab, showTabWarning,
     update, touch, handleSaveContinue, getTabErrors,
+    fetchAddressByPin,
   } = useGSTForm();
 
   // Sync active tab to sessionStorage so MainLayout progress bar can read it
@@ -29,7 +30,7 @@ export default function GSTFormShell() {
     sessionStorage.setItem("gst_active_tab", String(activeTab));
   }, [activeTab]);
 
-  const props = { data: formData, update, errors, touched, touch };
+  const props = { data: formData, update, errors, touched, touch, fetchAddressByPin };
 
   const pages = [
     <Tab0_BusinessDetails {...props} />,
