@@ -22,8 +22,14 @@ export default function GSTFormShell() {
     formData, contactInfo, errors, touched, tabStatus,
     activeTab, setActiveTab, showTabWarning,
     update, touch, handleSaveContinue, getTabErrors,
-    fetchAddressByPin,
+    fetchAddressByPin, fetchDrafts, loadDraft, draftsList, 
+    currentSubmissionId, resetForm
   } = useGSTForm();
+
+  // Load existing submissions list for this specific mobile number
+  useEffect(() => {
+    fetchDrafts(contactInfo.mobile);
+  }, [fetchDrafts, contactInfo.mobile]);
 
   // Sync active tab to sessionStorage so MainLayout progress bar can read it
   useEffect(() => {
@@ -93,6 +99,34 @@ export default function GSTFormShell() {
 
       {/* Main content */}
       <main style={{ flex:1, minWidth:0 }}>
+        {/* Draft Selector Bar */}
+        <div style={{ background:"linear-gradient(to right,#F8FAFC,#fff)", border:"1.5px dashed #CBD5E1", borderRadius:14, padding:"12px 20px", marginBottom:18, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:"#F1F5F9", display:"flex", alignItems:"center", justifyContent:"center" }}>📂</div>
+            <div>
+              <div style={{ fontSize:10.5, fontWeight:800, color:"#64748B", textTransform:"uppercase", letterSpacing:"0.05em" }}>Resume Application</div>
+              <select 
+                value={currentSubmissionId || ""}
+                onChange={(e) => loadDraft(e.target.value)}
+                style={{ background:"transparent", border:"none", outline:"none", fontSize:13, fontWeight:700, color:"#1E293B", cursor:"pointer", padding:"2px 0" }}
+              >
+                <option value="">-- Choose Submitted Name --</option>
+                {draftsList.map(draft => (
+                  <option key={draft.id} value={draft.id}>
+                    👤 {draft.legal_name} ({draft.mobile})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <button type="button" onClick={resetForm}
+            style={{ padding:"8px 16px", background:"#fff", border:"1.5px solid #E2E8F0", borderRadius:9, fontSize:12.5, fontWeight:700, color:"#1B4FD8", cursor:"pointer", transition:"all 0.2s" }}
+            onMouseOver={(e)=>e.target.style.background="#F1F5F9"} onMouseOut={(e)=>e.target.style.background="#fff"}>
+            ➕ Start New Form
+          </button>
+        </div>
+
         {showTabWarning && (
           <div style={{ background:"#FFFBEB", border:"1px solid #F59E0B", borderRadius:10, padding:"13px 17px", marginBottom:14, display:"flex", alignItems:"center", gap:9 }}>
             <span style={{ fontSize:16 }}>⚠️</span>
@@ -104,13 +138,22 @@ export default function GSTFormShell() {
 
         {/* Tab header */}
         <div style={{ background:"#fff", borderRadius:14, border:"1px solid #E2E8F0", padding:"18px 26px", marginBottom:18, display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 1px 4px rgba(15,23,42,0.04)" }}>
-          <div>
-            <div style={{ fontSize:10.5, fontWeight:800, color:"#1B4FD8", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:5 }}>Section {activeTab+1} of {TABS.length}</div>
-            <h2 style={{ fontSize:20, fontWeight:800, color:"#1E293B", letterSpacing:"-0.02em" }}>{TABS[activeTab].label}</h2>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:48, height:48, borderRadius:"14px", background:"linear-gradient(135deg,#EEF4FF,#DBEAFE)", border:"2px solid #C7D9FF", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:800, color:"#1B4FD8", fontFamily:"'JetBrains Mono',monospace" }}>
+              {String(activeTab+1).padStart(2,"0")}
+            </div>
+            <div>
+              <div style={{ fontSize:10.5, fontWeight:800, color:"#1B4FD8", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:2 }}>
+                {currentSubmissionId ? "📝 Updating Entry #" + currentSubmissionId : "🆕 New Registration"}
+              </div>
+              <h2 style={{ fontSize:20, fontWeight:800, color:"#1E293B", letterSpacing:"-0.02em" }}>{TABS[activeTab].label}</h2>
+            </div>
           </div>
-          <div style={{ width:48, height:48, borderRadius:"50%", background:"linear-gradient(135deg,#EEF4FF,#DBEAFE)", border:"2px solid #C7D9FF", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:800, color:"#1B4FD8", fontFamily:"'JetBrains Mono',monospace" }}>
-            {String(activeTab+1).padStart(2,"0")}
-          </div>
+          {currentSubmissionId && (
+            <div style={{ padding:"6px 14px", background:"#FEF3C7", color:"#92400E", borderRadius:10, fontSize:12, fontWeight:700, display:"flex", alignItems:"center", gap:6 }}>
+              <span style={{ fontSize:14 }}>🛡️</span> EDIT MODE
+            </div>
+          )}
         </div>
 
         {pages[activeTab]}

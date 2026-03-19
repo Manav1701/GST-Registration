@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { INITIAL_STATE, STORAGE_KEY } from "../constants/tabs.js";
 import { validateField, TAB_REQUIRED_FIELDS } from "../constants/validation.js";
-import { submitGSTForm } from "../api/gstApi.js";
+import { submitGSTForm, updateGSTForm, getDrafts, getSubmission } from "../api/gstApi.js";
 
 export function useGSTForm() {
   const navigate = useNavigate();
@@ -15,6 +15,9 @@ export function useGSTForm() {
       return INITIAL_STATE;
     }
   });
+
+  const [currentSubmissionId, setCurrentSubmissionId] = useState(null);
+  const [draftsList, setDraftsList] = useState([]);
 
   const [contactInfo] = useState(() => {
     try {
@@ -37,13 +40,11 @@ export function useGSTForm() {
   const [apiError, setApiError] = useState(null);
   const [showTabWarning, setShowTabWarning] = useState(false);
 
-  // Auto-save to localStorage on every formData change
+  // Auto-save to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-    } catch {
-      /* ignore quota errors */
-    }
+    } catch { /* skip if quota full */ }
   }, [formData]);
 
   const computeErrors = useCallback((data) => {
@@ -97,31 +98,51 @@ export function useGSTForm() {
       const result = await resp.json();
       if (result?.[0]?.Status === "Success" && result[0].PostOffice?.[0]) {
         const po = result[0].PostOffice[0];
-        return {
-          stateName: po.State,
-          district: po.District,
-          city: po.Block || po.Name,
-        };
+        return { stateName: po.State, district: po.District, city: po.Block || po.Name };
       }
-    } catch (err) {
-      console.warn("[fetchAddressByPin] Failed:", err.message);
-    }
+    } catch (err) { console.warn("[fetchAddressByPin] Failed:", err.message); }
     return null;
+  }, []);
+
+  const fetchDrafts = useCallback(async (mobile) => {
+    try {
+      if (!mobile) {
+        setDraftsList([]);
+        return;
+      }
+      const data = await getDrafts(mobile);
+      setDraftsList(data || []);
+    } catch (err) { console.error("Failed to load drafts:", err); }
+  }, []);
+
+  const loadDraft = useCallback(async (id) => {
+    if (!id) return;
+    try {
+      setIsSubmitting(true);
+      const submission = await getSubmission(id);
+      if (submission && submission.form_data) {
+        setFormData({ ...INITIAL_STATE, ...submission.form_data });
+        setCurrentSubmissionId(id);
+        setActiveTab(0);
+        setErrors({});
+        setTouched({});
+        setTabStatus({});
+        // Optionally save to stage
+        localStorage.setItem("gst_stage", "0");
+      }
+    } catch (err) { setApiError("Failed to load draft"); }
+    finally { setIsSubmitting(false); }
   }, []);
 
   const touchAllInTab = useCallback(
     (tabIdx) => {
       const fields = TAB_REQUIRED_FIELDS[tabIdx] || [];
       const newTouched = {};
-      fields.forEach((f) => {
-        newTouched[f] = true;
-      });
+      fields.forEach((f) => { newTouched[f] = true; });
       setTouched((prev) => ({ ...prev, ...newTouched }));
       const errs = computeErrors(formData);
       const newErrors = {};
-      fields.forEach((f) => {
-        if (errs[f]) newErrors[f] = errs[f];
-      });
+      fields.forEach((f) => { if (errs[f]) newErrors[f] = errs[f]; });
       setErrors((prev) => ({ ...prev, ...newErrors }));
       return fields.filter((f) => errs[f]).length;
     },
@@ -130,14 +151,9 @@ export function useGSTForm() {
 
   const handleSaveContinue = useCallback(
     (activeTabIdx, totalTabs) => {
-      // Clear apb_notice error if it exists
       if (errors.apb_notice) {
-        setErrors(prev => {
-          const { apb_notice, ...rest } = prev;
-          return rest;
-        });
+        setErrors(prev => { const { apb_notice, ...rest } = prev; return rest; });
       }
-
       const errCount = touchAllInTab(activeTabIdx);
       if (errCount > 0) {
         setShowTabWarning(true);
@@ -153,7 +169,7 @@ export function useGSTForm() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return true;
     },
-    [touchAllInTab, navigate, formData.toggle_5, errors.apb_notice]
+    [touchAllInTab, navigate, errors.apb_notice]
   );
 
   const handleSubmit = useCallback(async () => {
@@ -166,33 +182,22 @@ export function useGSTForm() {
     setApiError(null);
 
     try {
-      await submitGSTForm(formData, contactInfo);
+      if (currentSubmissionId) {
+        await updateGSTForm(currentSubmissionId, formData, contactInfo);
+      } else {
+        await submitGSTForm(formData, contactInfo);
+      }
 
-      // Save data for success page summary before clearing
-      localStorage.setItem(
-        STORAGE_KEY + "_submitted",
-        JSON.stringify(formData)
-      );
-
-      // Clear all session data on success
+      localStorage.setItem(STORAGE_KEY + "_submitted", JSON.stringify(formData));
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("gst_stage");
-      // Keep contact and verified status briefly for the success page if needed,
-      // but SubmittedPage clears them on "Start New" anyway.
-      // Actually, SubmittedPage needs gst_contact too.
-      // localStorage.removeItem("gst_contact"); // Don't remove yet
-      // localStorage.removeItem("gst_otp_verified");
-
       navigate("/submitted");
     } catch (err) {
-      setApiError(
-        err.message ||
-          "Failed to submit. Please check your connection and try again."
-      );
+      setApiError(err.message || "Failed to submit. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, contactInfo, touchAllInTab, computeErrors, navigate]);
+  }, [formData, contactInfo, touchAllInTab, computeErrors, navigate, currentSubmissionId]);
 
   const resetForm = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
@@ -200,6 +205,7 @@ export function useGSTForm() {
     localStorage.removeItem("gst_contact");
     localStorage.removeItem("gst_otp_verified");
     setFormData(INITIAL_STATE);
+    setCurrentSubmissionId(null);
     setActiveTab(0);
     setTouched({});
     setErrors({});
@@ -208,24 +214,10 @@ export function useGSTForm() {
   }, [navigate]);
 
   return {
-    formData,
-    contactInfo,
-    errors,
-    touched,
-    tabStatus,
-    activeTab,
-    setActiveTab,
-    isSubmitting,
-    apiError,
-    showTabWarning,
-    update,
-    touch,
-    applyAutoFill,
-    handleSaveContinue,
-    handleSubmit,
-    resetForm,
-    getTabErrors,
-    computeErrors,
-    fetchAddressByPin,
+    formData, contactInfo, errors, touched, tabStatus, activeTab,
+    setActiveTab, isSubmitting, apiError, showTabWarning, update,
+    touch, applyAutoFill, handleSaveContinue, handleSubmit, resetForm,
+    getTabErrors, computeErrors, fetchAddressByPin, fetchDrafts, 
+    loadDraft, draftsList, currentSubmissionId
   };
 }

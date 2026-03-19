@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FormInput, FormSelect, FormToggle, SectionCard, InfoAlert, Grid2, Grid3 } from "../../../components/ui/index.jsx";
 import { FileInput } from "../../../components/ui/index.jsx";
 import BusinessActivityCheckboxes from "../../../components/shared/BusinessActivityCheckboxes.jsx";
@@ -8,23 +8,41 @@ export default function Tab5_PPB({ data, update, errors, touched, touch, fetchAd
   const f = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
   const sel = (name) => ({ value:data[name], error:touched[name]?errors[name]:null, onChange:(e)=>update(name,e.target.value), onBlur:()=>touch(name) });
 
-  // PIN Code Auto-fill Logic (Live API)
+  const [jurisdictionData, setJurisdictionData] = useState({ commissionerates: [], divisions: [], ranges: [] });
+
+  // PIN Code Auto-fill Logic (Address + Jurisdiction)
   useEffect(() => {
     if (data.ppb_pin?.length === 6) {
-      const loadAddress = async () => {
+      const loadData = async () => {
+        // 1. Fetch Address
         const address = await fetchAddressByPin(data.ppb_pin);
         if (address) {
-          // Find state code by name in India
           const statesInIndia = getStatesForCountry('IN');
           const matchedState = statesInIndia.find(s => s.label.toLowerCase() === address.stateName.toLowerCase());
           if (matchedState) {
             update("ppb_state", matchedState.value);
             update("ppb_district", address.district);
             update("ppb_city", address.city);
+
+            // 2. Fetch Jurisdiction via Backend Proxy
+            try {
+              const res = await fetch(`http://localhost:8000/api/jurisdiction/${matchedState.value}/${data.ppb_pin}`);
+              const jData = await res.json();
+              if (jData && !jData.error) {
+                setJurisdictionData(jData);
+                // Auto-fill first options
+                if (jData.commissionerates?.length > 0) update("center_commissionerate", jData.commissionerates[0].c);
+                if (jData.wards?.length > 0) update("sector_circle", jData.wards[0].c);
+                if (jData.divisions?.length > 0) update("center_division", jData.divisions[0].c);
+                if (jData.ranges?.length > 0) update("center_range", jData.ranges[0].c);
+              }
+            } catch (err) {
+              console.error("Jurisdiction fetch failed:", err);
+            }
           }
         }
       };
-      loadAddress();
+      loadData();
     }
   }, [data.ppb_pin, update, fetchAddressByPin]);
 
@@ -60,14 +78,20 @@ export default function Tab5_PPB({ data, update, errors, touched, touch, fetchAd
       </SectionCard>
 
       <SectionCard title="Jurisdiction" icon="⚖️">
-        <FormSelect label="Sector / Circle / Ward / Charge / Unit" required {...sel("sector_circle")} items={GHATAK_ITEMS}/>
+        <FormSelect label="Sector / Circle / Ward / Charge / Unit" required {...sel("sector_circle")} 
+          items={jurisdictionData.wards.map(w => ({ value: w.c, label: w.n }))}/>
         <Grid3>
           <FormSelect label="Center Jurisdiction — Commissionerate" required {...sel("center_commissionerate")}
-            items={[{value:"AHMEDABAD SOUTH",label:"AHMEDABAD SOUTH"}]}/>
+            items={jurisdictionData.commissionerates.map(c => ({ value: c.c, label: c.n }))}
+            hint={jurisdictionData.commissionerates.length > 0 ? "Detected based on PIN" : "Enter PIN to load"} />
+          
           <FormSelect label="Center Jurisdiction — Division" required {...sel("center_division")}
-            items={[{value:"WS06",label:"DIVISION-VI — VASTRAPUR"},{value:"WS07",label:"DIVISION-VII — SATELLITE"},{value:"WS08",label:"DIVISION-VIII — VEJALPUR"}]}/>
+            items={jurisdictionData.divisions.map(d => ({ value: d.c, label: d.n }))}
+            disabled={jurisdictionData.divisions.length === 0}/>
+          
           <FormSelect label="Center Jurisdiction — Range" required {...sel("center_range")}
-            items={[{value:"WS0601",label:"RANGE I"},{value:"WS0602",label:"RANGE II"},{value:"WS0603",label:"RANGE III"}]}/>
+            items={jurisdictionData.ranges.map(r => ({ value: r.c, label: r.n }))}
+            disabled={jurisdictionData.ranges.length === 0}/>
         </Grid3>
       </SectionCard>
 

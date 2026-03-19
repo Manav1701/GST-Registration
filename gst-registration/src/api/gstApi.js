@@ -27,18 +27,50 @@ export const extractDocument = async (docType, fileBase64, mimeType) => {
 };
 
 /**
+ * GET /api/drafts
+ * Returns a list of {id, legal_name, mobile} for the dropdown.
+ */
+export const getDrafts = async (mobile) => {
+  const { data } = await apiClient.get(ENDPOINTS.DRAFTS, {
+    params: { mobile }
+  });
+  return data;
+};
+
+/**
+ * GET /api/submissions/{id}
+ * Fetches the full JSON data for a specific client.
+ */
+export const getSubmission = async (id) => {
+  const { data } = await apiClient.get(`${ENDPOINTS.SUBMISSIONS}/${id}`);
+  return data;
+};
+
+/**
  * POST /api/submissions
- * Submits the complete GST registration form payload.
- * Matches backend requirements (form_key + form_data wrapper).
+ * Creates a new submission.
  */
 export const submitGSTForm = async (formData, contactInfo) => {
   const payload = buildPayload(formData, contactInfo);
-  // Backend (server.js/main.py) EXPECTS this exact wrapper
   const wrappedPayload = {
     form_key: "gst_registration",
     form_data: payload,
   };
-  const { data } = await apiClient.post(ENDPOINTS.SUBMIT_FORM, wrappedPayload);
+  const { data } = await apiClient.post(ENDPOINTS.SUBMISSIONS, wrappedPayload);
+  return data;
+};
+
+/**
+ * PUT /api/submissions/{id}
+ * Updates an EXISTING submission in the database.
+ */
+export const updateGSTForm = async (id, formData, contactInfo) => {
+  const payload = buildPayload(formData, contactInfo);
+  const wrappedPayload = {
+    form_key: "gst_registration",
+    form_data: payload,
+  };
+  const { data } = await apiClient.put(`${ENDPOINTS.SUBMISSIONS}/${id}`, wrappedPayload);
   return data;
 };
 
@@ -83,8 +115,10 @@ function buildPayload(f, contact) {
     father_middle: f.father_middle,
     father_last: f.father_last,
     dob: toBackendDate(f.dob),
-    mobile: f.mobile,
-    email: f.email,
+    // Use contactInfo (registration number) if form mobile is empty.
+    // This ensures the Privacy Filter works even before the form is filled.
+    mobile: f.mobile || contact?.mobile,
+    email: f.email || contact?.email,
     telephone: f.telephone || null,
     radiogroup: f.radiogroup || "",
     designation: f.designation,
@@ -296,5 +330,9 @@ function buildPayload(f, contact) {
     place: f.place,
     designation_ver: f.designation_ver,
     date_ver: toBackendDate(f.date_ver),
+
+    // System/Contact metadata for filtering drafts
+    _contact_mobile: contact?.mobile,
+    _contact_email: contact?.email,
   };
 }
