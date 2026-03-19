@@ -3,11 +3,10 @@ import { FormInput, FormSelect, FormToggle, FormRadioGroup, SectionCard, InfoAle
 import { FileInput } from "../../../components/ui/index.jsx";
 import { COUNTRIES, getStatesForCountry, getCitiesForState } from "../../../constants/dropdowns.js";
 
-// Shared promoter form used for both Promoter 1 (suffix="") and Promoter 2 (suffix="_2")
-export default function Tab1_Promoter({ data, update, errors, touched, touch, suffix="", fetchAddressByPin }) {
+function PromoterForm({ data, update, errors, touched, touch, suffix = "", fetchAddressByPin, onRemove, isRemoveable }) {
   const s = (n) => suffix ? `${n}${suffix}` : n;
-  const f = (name) => ({ value:data[s(name)], error:touched[s(name)]?errors[s(name)]:null, onChange:(e)=>update(s(name),e.target.value), onBlur:()=>touch(s(name)) });
-  const sel = (name) => ({ value:data[s(name)], error:touched[s(name)]?errors[s(name)]:null, onChange:(e)=>update(s(name),e.target.value), onBlur:()=>touch(s(name)) });
+  const f = (name) => ({ value: data[s(name)], error: touched[s(name)] ? errors[s(name)] : null, onChange: (e) => update(s(name), e.target.value), onBlur: () => touch(s(name)) });
+  const sel = (name) => ({ value: data[s(name)], error: touched[s(name)] ? errors[s(name)] : null, onChange: (e) => update(s(name), e.target.value), onBlur: () => touch(s(name)) });
 
   const isAlsoSignatoryField = s("Also Authorized Signatory");
   const isAlsoSignatory = !!data[isAlsoSignatoryField];
@@ -18,7 +17,7 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
   const stateItems = getStatesForCountry(countryCode);
   const districtItems = stateCode ? getCitiesForState(countryCode, stateCode) : [];
 
-  // PIN Code Auto-fill Logic (Live API for India)
+  // PIN Code Auto-fill Logic
   useEffect(() => {
     const pin = data[s("pin_code")];
     if (pin?.length === 6 && countryCode === "IN") {
@@ -37,13 +36,9 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
     }
   }, [data[s("pin_code")], update, s, countryCode, fetchAddressByPin, stateItems]);
 
-  // REAL-TIME SYNC: This effect ensures that as you type in Promoter fields, 
-  // the Authorized Signatory (Tab 3/Page 4) stays updated automatically.
-  // It also clears the fields if the toggle is turned off.
-  // CRITICAL: This ONLY runs for Promoter 1 (suffix === ""). 
-  // Promoter 2 (suffix === "_2") does not sync to Page 4.
+  // REAL-TIME SYNC: Syncs Promoter 1 to Authorized Signatory section (Page 4)
   useEffect(() => {
-    if (suffix !== "") return; // Only sync for Promoter 1
+    if (suffix !== "") return; // Only sync for Primary Promoter
 
     const mappings = {
       as_name_first: isAlsoSignatory ? data[s("name_first")] : "",
@@ -79,9 +74,7 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
     };
 
     Object.entries(mappings).forEach(([targetKey, newValue]) => {
-      if (data[targetKey] !== newValue) {
-        update(targetKey, newValue);
-      }
+      if (data[targetKey] !== newValue) update(targetKey, newValue);
     });
   }, [
     isAlsoSignatory, suffix,
@@ -96,13 +89,34 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
     data[s("photo")]
   ]);
 
+  const pNum = suffix ? suffix.replace("_", "") : "1";
+
   return (
-    <>
-      {isAlsoSignatory && (
-        <div style={{ background:"#F0FDF4", border:"1px solid #BBF7D0", borderRadius:12, padding:"12px 18px", marginBottom:20, display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:24, height:24, borderRadius:"50%", background:"#10B981", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>✓</div>
-          <span style={{ fontSize:13, fontWeight:600, color:"#065F46" }}>
-            <strong>Auto-Sync Enabled:</strong> This promoter's details are being synced to the Authorized Signatory section in real-time.
+    <div style={{ marginBottom: 40, borderLeft: "4px solid #1B4FD8", paddingLeft: 24, paddingBottom: 10 }}>
+      {/* Promoter Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#1B4FD8", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 28, height: 28, borderRadius: "50%", background: "#1B4FD8", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{pNum}</span>
+          Promoter / Partner Details
+        </h3>
+        {isRemoveable && (
+          <button 
+            type="button" 
+            onClick={onRemove} 
+            style={{ padding: "6px 12px", background: "#FEE2E2", color: "#DC2626", border: "1px solid #FECACA", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}
+            onMouseOver={(e) => e.target.style.background = "#FCA5A5"}
+            onMouseOut={(e) => e.target.style.background = "#FEE2E2"}
+          >
+            ✕ Remove Promoter
+          </button>
+        )}
+      </div>
+
+      {suffix === "" && isAlsoSignatory && (
+        <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "12px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#10B981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>✓</div>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#065F46" }}>
+            <strong>Auto-Sync Enabled:</strong> This promoter's details are being synced to the Authorized Signatory section.
           </span>
         </div>
       )}
@@ -133,37 +147,70 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
         </Grid2>
         <FormToggle label="Are you a citizen of India?" value={!!data[s("toggle_2")]} onChange={(v)=>update(s("toggle_2"),v)}/>
         <Grid2>
-          <FormInput label="Permanent Account Number (PAN)" required {...f("pan_proprietor")} placeholder="ABCDE1234F"/>
-          <FormInput label="Passport Number (Foreigners only)" {...f("passport")} placeholder="Passport number"/>
-          <FormInput label="Aadhaar Number" {...f("aadhaar")} placeholder="12-digit Aadhaar" hint="Format: 123456789012"/>
+          <FormInput label="PAN" required {...f("pan_proprietor")} placeholder="ABCDE1234F"/>
+          <FormInput label="Passport Number" {...f("passport")} placeholder="Foreigners only"/>
+          <FormInput label="Aadhaar Number" {...f("aadhaar")} placeholder="12-digit Aadhaar"/>
         </Grid2>
       </SectionCard>
 
       <SectionCard title="Residential Address" icon="🏠">
-        <InfoAlert>
-          i. Please be aware that the GST system incorporates mandatory address validations for accuracy and uniformity.<br/>
-          ii. Users must ensure that addresses entered align with these validations and any corresponding address proof.
-        </InfoAlert>
         <Grid2>
           <FormSelect label="Country" required {...sel("country")} items={COUNTRIES}/>
-          <FormInput label="PIN Code" required {...f("pin_code")} placeholder="6-digit PIN" hint="Type 380015 to test auto-fill"/>
+          <FormInput label="PIN Code" required {...f("pin_code")} placeholder="6-digit PIN"/>
           <FormSelect label="State" required {...sel("state_res")} items={stateItems}
             onChange={(e) => { update(s("state_res"), e.target.value); update(s("district_res"), ""); }} />
           <FormSelect label="District" required {...sel("district_res")} items={districtItems} disabled={!data[s("state_res")]}/>
           <FormInput label="City / Town / Village" required {...f("city_res")} placeholder="City or town"/>
-          <FormInput label="Locality / Sub Locality" {...f("locality")} placeholder="Locality or sub-locality"/>
-          <FormInput label="Road / Street" required {...f("road_street_res")} placeholder="Road or street name"/>
-          <FormInput label="Name of the Premises / Building" {...f("premises_name")} placeholder="Building or premises name"/>
-          <FormInput label="Building No. / Flat No." required {...f("building_no_res")} placeholder="Flat/Building number"/>
+          <FormInput label="Locality" {...f("locality")} placeholder="Locality"/>
+          <FormInput label="Road / Street" required {...f("road_street_res")} placeholder="Road or street"/>
+          <FormInput label="Building Name" {...f("premises_name")} placeholder="Building name"/>
+          <FormInput label="Building No." required {...f("building_no_res")} placeholder="Building number"/>
           <FormInput label="Floor No." {...f("floor_no_res")} placeholder="Floor number"/>
-          <FormInput label="Nearby Landmark" {...f("landmark_res")} placeholder="Nearby landmark"/>
+          <FormInput label="Landmark" {...f("landmark_res")} placeholder="Nearby landmark"/>
         </Grid2>
       </SectionCard>
 
-      <SectionCard title="Document Upload" icon="📎">
-        <FileInput label="Upload Photo (JPEG only, max 100KB)" value={data[s("photo")]} onChange={(v)=>update(s("photo"),v)} maxKb={100} forceJpeg={true} />
+      <SectionCard title="Uploads" icon="📎">
+        <FileInput label="Photo (JPEG, max 100KB)" value={data[s("photo")]} onChange={(v)=>update(s("photo"),v)} maxKb={100} forceJpeg={true} />
         <FormToggle label="Also Authorized Signatory" value={isAlsoSignatory} onChange={(v)=>update(isAlsoSignatoryField, v)}/>
       </SectionCard>
-    </>
+    </div>
+  );
+}
+
+export default function Tab1_Promoter(props) {
+  const { data, addPromoter, removePromoter } = props;
+  const ids = data.promoter_ids || [""];
+
+  return (
+    <div className="section-container animate-fade-in">
+      <InfoAlert>
+        <strong>Note:</strong> You can add multiple promoters/partners. If 'Also Authorized Signatory' is selected for the first promoter, their details will automatically sync to that section.
+      </InfoAlert>
+
+      <div style={{ padding: "10px 0" }}>
+        {ids.map((id, index) => (
+          <PromoterForm 
+            key={id || "primary"}
+            {...props} 
+            suffix={id} 
+            isRemoveable={index > 0} 
+            onRemove={() => removePromoter(id)}
+          />
+        ))}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", padding: "30px 0", borderTop: "2px dashed #E2E8F0", marginTop: 20 }}>
+        <button 
+          type="button" 
+          onClick={addPromoter}
+          style={{ padding: "14px 32px", background: "#fff", border: "2.5px solid #1B4FD8", color: "#1B4FD8", borderRadius: 14, fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, transition: "all 0.2s", boxShadow: "0 4px 12px rgba(27,79,216,0.1)" }}
+          onMouseOver={(e) => { e.target.style.background = "#EEF4FF"; e.target.style.transform = "translateY(-1px)"; }}
+          onMouseOut={(e) => { e.target.style.background = "#fff"; e.target.style.transform = "none"; }}
+        >
+          <span style={{ fontSize: 24, lineHeight: 1 }}>+</span> Add Another Promoter / Partner
+        </button>
+      </div>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 export const TABS = [
   { label: "Business Details", key: "business" },
-  { label: "Also Authorized Signatory", key: "promoter1" },
-  { label: "Also Authorized Signatory (2)", key: "promoter2" },
+  { label: "Promoters / Partners", key: "promoters" },
   { label: "Details of Authorized Signatory", key: "authsig" },
   { label: "Authorized Representative", key: "authrep" },
   { label: "Principal Place of Business", key: "ppb" },
@@ -90,4 +89,5 @@ export const INITIAL_STATE = {
   opt_for_aadhaar: false,
   declaration: false, signatory: "", place: "",
   designation_ver: "Proprietor", date_ver: "",
+  promoter_ids: [""], // Dynamic promoter tracking
 };

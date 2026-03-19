@@ -12,6 +12,9 @@ export const validateField = (name, value, allData = {}) => {
   const required = (label) => (!v ? `${label} is required` : null);
   const pattern = (p, msg) => (v && !p.test(v) ? msg : null);
 
+  // Handle dynamic suffixes for multi-promoters (e.g., name_first_2 -> name_first)
+  const baseName = name.replace(/_\d+$/, "");
+  
   const isRepEnabled = !!allData.toggle_4;
   const isGSTP = allData.radiogroup_2 === "GST Practitioner";
   const isOther = allData.radiogroup_2 === "Other";
@@ -79,7 +82,7 @@ export const validateField = (name, value, allData = {}) => {
     as_din: () => v && pattern(PATTERNS.din, "DIN must be 8 digits"),
   };
 
-  return rules[name] ? rules[name]() : null;
+  return rules[baseName] ? rules[baseName]() : null;
 };
 
 export const TAB_REQUIRED_FIELDS = {

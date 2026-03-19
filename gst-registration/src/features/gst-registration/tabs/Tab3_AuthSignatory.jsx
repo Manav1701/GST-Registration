@@ -33,7 +33,7 @@ export default function Tab3_AuthSignatory({ data, update, errors, touched, touc
 
   return (
     <>
-      {(data["Also Authorized Signatory"] || data["Also Authorized Signatory_2"]) && (
+      {data["Also Authorized Signatory"] && (
         <InfoAlert type="info">
           <strong>Note:</strong> These details have been automatically filled from the Promoter section because you selected "Also Authorized Signatory" there. 
           Any changes you make here will be saved for the signatory specifically.

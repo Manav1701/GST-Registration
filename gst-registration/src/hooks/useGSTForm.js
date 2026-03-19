@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { INITIAL_STATE, STORAGE_KEY } from "../constants/tabs.js";
 import { validateField, TAB_REQUIRED_FIELDS } from "../constants/validation.js";
-import { submitGSTForm, updateGSTForm, getDrafts, getSubmission } from "../api/gstApi.js";
+import { submitGSTForm, updateGSTForm, getSubmissions, getSubmission } from "../api/gstApi.js";
 
 export function useGSTForm() {
   const navigate = useNavigate();
@@ -110,33 +110,69 @@ export function useGSTForm() {
         setDraftsList([]);
         return;
       }
-      const data = await getDrafts(mobile);
-      setDraftsList(data || []);
-    } catch (err) { console.error("Failed to load drafts:", err); }
+      
+      // FETCH ALL from existing API
+      const allSubmissions = await getSubmissions();
+      
+      // FILTER in Frontend by mobile
+      const filtered = allSubmissions.filter(s => {
+        const data = s.form_data || {};
+        return String(data.mobile) === String(mobile) || 
+               String(data._contact_mobile) === String(mobile) || 
+               String(data.as_mobile) === String(mobile);
+      });
+
+      // Show Legal Name in dropdown
+      const drafts = filtered.map(s => ({
+        id: s.id,
+        legal_name: s.form_data?.legal_name || s.form_data?.trade_name || `Draft ${s.id}`
+      }));
+
+      setDraftsList(drafts);
+    } catch (err) { 
+      console.error("Failed to load drafts from submissions:", err); 
+      setDraftsList([]);
+    }
   }, []);
 
   const loadDraft = useCallback(async (id) => {
     if (!id) return;
     try {
       setIsSubmitting(true);
+      // Fetches the full JSON from the server by ID
       const submission = await getSubmission(id);
+      
       if (submission && submission.form_data) {
+        // Deep merge INITIAL_STATE with form_data to handle missing keys
         setFormData({ ...INITIAL_STATE, ...submission.form_data });
         setCurrentSubmissionId(id);
         setActiveTab(0);
         setErrors({});
         setTouched({});
         setTabStatus({});
-        // Optionally save to stage
-        localStorage.setItem("gst_stage", "0");
       }
-    } catch (err) { setApiError("Failed to load draft"); }
-    finally { setIsSubmitting(false); }
+    } catch (err) {
+      console.error("Failed to populate form from submission:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   }, []);
 
   const touchAllInTab = useCallback(
     (tabIdx) => {
-      const fields = TAB_REQUIRED_FIELDS[tabIdx] || [];
+      let fields = TAB_REQUIRED_FIELDS[tabIdx] || [];
+
+      // DYNAMIC PROMOTER VALIDATION: Generate fields for all added promoters
+      if (tabIdx === 1) {
+        const ids = formData.promoter_ids || [""];
+        const baseFields = [
+          "name_first", "name_last", "dob", "mobile", "email", 
+          "designation", "pan_proprietor", "country", "pin_code", 
+          "state_res", "district_res", "city_res", "road_street_res", "building_no_res"
+        ];
+        fields = ids.flatMap(id => baseFields.map(f => id ? `${f}${id}` : f));
+      }
+
       const newTouched = {};
       fields.forEach((f) => { newTouched[f] = true; });
       setTouched((prev) => ({ ...prev, ...newTouched }));
@@ -213,11 +249,41 @@ export function useGSTForm() {
     navigate("/");
   }, [navigate]);
 
+  const addPromoter = useCallback(() => {
+    setFormData((prev) => {
+      const ids = prev.promoter_ids || [""];
+      const nextIdx = ids.length + 1;
+      const newSuffix = `_${nextIdx}`;
+      return {
+        ...prev,
+        promoter_ids: [...ids, newSuffix],
+        [`name_first${newSuffix}`]: "",
+        [`dob${newSuffix}`]: "",
+        [`mobile${newSuffix}`]: "",
+        [`email${newSuffix}`]: "",
+        [`pan_proprietor${newSuffix}`]: "",
+        [`photo${newSuffix}`]: null,
+        [`country${newSuffix}`]: "IND",
+        [`radiogroup${newSuffix}`]: null,
+        [`toggle_2${newSuffix}`]: false,
+        [`Also Authorized Signatory${newSuffix}`]: false,
+      };
+    });
+  }, []);
+
+  const removePromoter = useCallback((idToRemove) => {
+    if (!idToRemove) return; // Can't remove the primary promoter
+    setFormData((prev) => {
+      const ids = (prev.promoter_ids || [""]).filter((id) => id !== idToRemove);
+      return { ...prev, promoter_ids: ids };
+    });
+  }, []);
+
   return {
     formData, contactInfo, errors, touched, tabStatus, activeTab,
     setActiveTab, isSubmitting, apiError, showTabWarning, update,
     touch, applyAutoFill, handleSaveContinue, handleSubmit, resetForm,
     getTabErrors, computeErrors, fetchAddressByPin, fetchDrafts, 
-    loadDraft, draftsList, currentSubmissionId
+    loadDraft, draftsList, currentSubmissionId, addPromoter, removePromoter
   };
 }

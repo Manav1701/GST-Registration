@@ -6,7 +6,6 @@ import { TABS } from "../../constants/tabs.js";
 // Tab pages
 import Tab0_BusinessDetails from "./tabs/Tab0_BusinessDetails.jsx";
 import Tab1_Promoter from "./tabs/Tab1_Promoter.jsx";
-import Tab2_Promoter2 from "./tabs/Tab2_Promoter2.jsx";
 import Tab3_AuthSignatory from "./tabs/Tab3_AuthSignatory.jsx";
 import Tab4_AuthRep from "./tabs/Tab4_AuthRep.jsx";
 import Tab5_PPB from "./tabs/Tab5_PPB.jsx";
@@ -23,13 +22,16 @@ export default function GSTFormShell() {
     activeTab, setActiveTab, showTabWarning,
     update, touch, handleSaveContinue, getTabErrors,
     fetchAddressByPin, fetchDrafts, loadDraft, draftsList, 
-    currentSubmissionId, resetForm
+    currentSubmissionId, resetForm, addPromoter, removePromoter
   } = useGSTForm();
 
-  // Load existing submissions list for this specific mobile number
+  // Load existing submissions list for this specific mobile number or name
   useEffect(() => {
-    fetchDrafts(contactInfo.mobile);
-  }, [fetchDrafts, contactInfo.mobile]);
+    // 1. Try saved contact info
+    // 2. Try current form values (Live Search)
+    const searchParam = contactInfo.mobile || formData.mobile || formData.legal_name || "0000";
+    fetchDrafts(searchParam);
+  }, [fetchDrafts, contactInfo.mobile, formData.mobile, formData.legal_name]);
 
   // Sync active tab to sessionStorage so MainLayout progress bar can read it
   useEffect(() => {
@@ -40,8 +42,7 @@ export default function GSTFormShell() {
 
   const pages = [
     <Tab0_BusinessDetails {...props} />,
-    <Tab1_Promoter {...props} suffix="" />,
-    <Tab2_Promoter2 {...props} suffix="_2" />,
+    <Tab1_Promoter {...props} addPromoter={addPromoter} removePromoter={removePromoter} />,
     <Tab3_AuthSignatory {...props} />,
     <Tab4_AuthRep {...props} />,
     <Tab5_PPB {...props} />,
