@@ -161,7 +161,7 @@ export default function Tab1_Promoter({ data, update, errors, touched, touch, su
       </SectionCard>
 
       <SectionCard title="Document Upload" icon="📎">
-        <FileInput label="Upload Photo (JPEG only, max 100KB)" value={data[s("photo")]} onChange={(v)=>update(s("photo"),v)}/>
+        <FileInput label="Upload Photo (JPEG only, max 100KB)" value={data[s("photo")]} onChange={(v)=>update(s("photo"),v)} maxKb={100} forceJpeg={true} />
         <FormToggle label="Also Authorized Signatory" value={isAlsoSignatory} onChange={(v)=>update(isAlsoSignatoryField, v)}/>
       </SectionCard>
     </>

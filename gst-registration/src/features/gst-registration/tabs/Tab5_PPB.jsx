@@ -79,19 +79,19 @@ export default function Tab5_PPB({ data, update, errors, touched, touch, fetchAd
 
       <SectionCard title="Jurisdiction" icon="⚖️">
         <FormSelect label="Sector / Circle / Ward / Charge / Unit" required {...sel("sector_circle")} 
-          items={jurisdictionData.wards.map(w => ({ value: w.c, label: w.n }))}/>
+          items={jurisdictionData.wards?.map(w => ({ value: w.c, label: w.n })) || []}/>
         <Grid3>
           <FormSelect label="Center Jurisdiction — Commissionerate" required {...sel("center_commissionerate")}
-            items={jurisdictionData.commissionerates.map(c => ({ value: c.c, label: c.n }))}
-            hint={jurisdictionData.commissionerates.length > 0 ? "Detected based on PIN" : "Enter PIN to load"} />
+            items={jurisdictionData.commissionerates?.map(c => ({ value: c.c, label: c.n })) || []}
+            hint={jurisdictionData.commissionerates?.length > 0 ? "Detected based on PIN" : "Enter PIN to load"} />
           
           <FormSelect label="Center Jurisdiction — Division" required {...sel("center_division")}
-            items={jurisdictionData.divisions.map(d => ({ value: d.c, label: d.n }))}
-            disabled={jurisdictionData.divisions.length === 0}/>
+            items={jurisdictionData.divisions?.map(d => ({ value: d.c, label: d.n })) || []}
+            disabled={!jurisdictionData.divisions?.length}/>
           
           <FormSelect label="Center Jurisdiction — Range" required {...sel("center_range")}
-            items={jurisdictionData.ranges.map(r => ({ value: r.c, label: r.n }))}
-            disabled={jurisdictionData.ranges.length === 0}/>
+            items={jurisdictionData.ranges?.map(r => ({ value: r.c, label: r.n })) || []}
+            disabled={!jurisdictionData.ranges?.length}/>
         </Grid3>
       </SectionCard>
 
@@ -125,7 +125,7 @@ export default function Tab5_PPB({ data, update, errors, touched, touch, fetchAd
             disabled={!data.ppb_possession_type}
             hint={!data.ppb_possession_type ? "Select possession type first" : "Suggested based on possession"} />
         </Grid2>
-        <FileInput label="Upload Document (PDF/JPEG, max 1MB)" value={data.ppb_file} onChange={(v)=>update("ppb_file",v)}/>
+        <FileInput label="Upload Document (PDF/JPEG, max 1MB)" value={data.ppb_file} onChange={(v)=>update("ppb_file",v)} maxKb={1024}/>
       </SectionCard>
 
       <SectionCard title="Nature of Business Activity at Principal Place" icon="💼">

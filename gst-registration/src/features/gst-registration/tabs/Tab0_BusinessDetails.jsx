@@ -65,8 +65,8 @@ export default function Tab0_BusinessDetails({ data, update, errors, touched, to
           <FormSelect label="Proof of Constitution of Business" value={data.proof_of_constitution} onChange={(e)=>update("proof_of_constitution",e.target.value)} items={PROOF_OF_CONSTITUTION}/>
           <div/>
         </Grid2>
-        <FileInput label="Upload Constitution Document" value={data.constitution_document} onChange={(v)=>update("constitution_document",v)}/>
-        <FileInput label="Document Upload" value={data.file} onChange={(v)=>update("file",v)}/>
+        <FileInput label="Upload Constitution Document" value={data.constitution_document} onChange={(v)=>update("constitution_document",v)} maxKb={1024}/>
+        <FileInput label="Document Upload" value={data.file} onChange={(v)=>update("file",v)} maxKb={1024}/>
       </SectionCard>
     </>
   );

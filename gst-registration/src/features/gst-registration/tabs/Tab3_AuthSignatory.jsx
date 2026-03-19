@@ -92,8 +92,8 @@ export default function Tab3_AuthSignatory({ data, update, errors, touched, touc
 
       <SectionCard title="Documents" icon="📎">
         <FormSelect label="Proof of details of authorized signatory" value={data.as_proof_type} onChange={(e)=>update("as_proof_type",e.target.value)} items={AUTH_SIGNATORY_PROOF}/>
-        <FileInput label="Upload Proof (PDF/JPEG, max 1MB)" value={data.as_proof_file} onChange={(v)=>update("as_proof_file",v)}/>
-        <FileInput label="Upload Photograph (JPEG only, max 100KB)" value={data.as_photo} onChange={(v)=>update("as_photo",v)}/>
+        <FileInput label="Upload Proof (PDF/JPEG, max 1MB)" value={data.as_proof_file} onChange={(v)=>update("as_proof_file",v)} maxKb={1024}/>
+        <FileInput label="Upload Photograph (JPEG only, max 100KB)" value={data.as_photo} onChange={(v)=>update("as_photo",v)} maxKb={100} forceJpeg={true}/>
       </SectionCard>
     </>
   );

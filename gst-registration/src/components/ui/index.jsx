@@ -1,4 +1,6 @@
 // ─── All reusable UI primitive components ────────────────────────────────────
+import { useState } from "react";
+import { processImage } from "../../utils/fileProcessor.js";
 
 export const FieldWrapper = ({ label, required, error, hint, children }) => (
   <div style={{ marginBottom: 18 }} className="field-animate">
@@ -101,21 +103,53 @@ export const FormCheckbox = ({ label, value, onChange, error }) => (
   </FieldWrapper>
 );
 
-export const FileInput = ({ label, required, error, value, onChange }) => (
-  <FieldWrapper label={label} required={required} error={error}>
-    <div style={{ border:`2px dashed ${error?"#FCA5A5":"#CBD5E1"}`, borderRadius:8, padding:"18px 14px", textAlign:"center", background:"#FAFBFD", cursor:"pointer", transition:"all 0.15s ease", position:"relative" }}
-      onMouseEnter={(e)=>(e.currentTarget.style.borderColor="#1B4FD8")}
-      onMouseLeave={(e)=>(e.currentTarget.style.borderColor=error?"#FCA5A5":"#CBD5E1")}>
-      <input type="file" style={{ position:"absolute", inset:0, opacity:0, cursor:"pointer" }} onChange={(e)=>onChange(e.target.files[0]?.name||null)}/>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.5" style={{ margin:"0 auto 7px" }}>
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-      </svg>
-      {value
-        ? <p style={{ fontSize:12.5, color:"#1B4FD8", fontWeight:600 }}>{value}</p>
-        : <><p style={{ fontSize:12.5, color:"#64748B", fontWeight:600 }}>Click to upload or drag & drop</p><p style={{ fontSize:11, color:"#94A3B8", marginTop:3 }}>PDF / JPEG — max 1MB</p></>}
-    </div>
-  </FieldWrapper>
-);
+export const FileInput = ({ label, required, error, value, onChange, maxKb = 1024, forceJpeg = false }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setIsProcessing(true);
+      const processedFile = await processImage(file, maxKb, forceJpeg);
+      // For now, we still just save the name to maintain compatibility with existing logic,
+      // but in a real app, you'd save the processedFile object or upload it.
+      onChange(processedFile.name); 
+    } catch (err) {
+      console.error("File processing failed:", err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <FieldWrapper label={label} required={required} error={error}>
+      <div style={{ border:`2px dashed ${error?"#FCA5A5":isProcessing?"#1B4FD8":"#CBD5E1"}`, borderRadius:8, padding:"18px 14px", textAlign:"center", background:"#FAFBFD", cursor:isProcessing?"wait":"pointer", transition:"all 0.15s ease", position:"relative" }}
+        onMouseEnter={(e)=>(!isProcessing && (e.currentTarget.style.borderColor="#1B4FD8"))}
+        onMouseLeave={(e)=>(!isProcessing && (e.currentTarget.style.borderColor=error?"#FCA5A5":"#CBD5E1"))}>
+        <input type="file" disabled={isProcessing} style={{ position:"absolute", inset:0, opacity:0, cursor:isProcessing?"wait":"pointer" }} 
+          onChange={handleFileChange} accept={forceJpeg ? "image/jpeg" : ".pdf,image/jpeg,image/png"}/>
+        
+        {isProcessing ? (
+          <div style={{ padding:"10px 0" }}>
+            <div className="spinner" style={{ width:20, height:20, border:"2px solid #E2E8F0", borderTopColor:"#1B4FD8", borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto 10px" }} />
+            <p style={{ fontSize:12, color:"#1B4FD8", fontWeight:700 }}>Optimizing File...</p>
+          </div>
+        ) : (
+          <>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.5" style={{ margin:"0 auto 7px" }}>
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+            {value
+              ? <p style={{ fontSize:12.5, color:"#1B4FD8", fontWeight:600 }}>✅ {value}</p>
+              : <><p style={{ fontSize:12.5, color:"#64748B", fontWeight:600 }}>Click to upload or drag & drop</p><p style={{ fontSize:11, color:"#94A3B8", marginTop:3 }}>{forceJpeg ? "JPEG Only" : "PDF / JPEG"} — max {maxKb >= 1024 ? (maxKb/1024)+"MB" : maxKb+"KB"}</p></>}
+          </>
+        )}
+      </div>
+    </FieldWrapper>
+  );
+};
 
 export const SectionCard = ({ title, icon, children }) => (
   <div style={{ background:"#fff", borderRadius:12, border:"1px solid #E2E8F0", marginBottom:20, overflow:"hidden", boxShadow:"0 1px 4px rgba(15,23,42,0.05)" }}>

@@ -141,7 +141,7 @@ export default function Tab6_APB({ data, update, errors, touched, touch, fetchAd
                 disabled={!data.apb_possession_type}
                 hint={!data.apb_possession_type ? "Select possession type first" : "Suggested based on possession"} />
             </Grid2>
-            <FileInput label="Upload Document (PDF/JPEG, max 1MB)" value={data.apb_file} onChange={(v)=>update("apb_file",v)}/>
+            <FileInput label="Upload Document (PDF/JPEG, max 1MB)" value={data.apb_file} onChange={(v)=>update("apb_file",v)} maxKb={1024}/>
           </SectionCard>
 
           <SectionCard title="Nature of Business Activity" icon="💼">
