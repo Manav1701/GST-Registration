@@ -42,15 +42,45 @@ export default function Tab5_PPB({
 
   const [jurisdictionData, setJurisdictionData] = useState({
     commissionerates: [],
+    wards: [],
     divisions: [],
     ranges: [],
   });
 
-  // PIN Code Auto-fill Logic (Address + Jurisdiction)
+  const fetchProxy = async (endpoint) => {
+    try {
+      const targetUrl = `https://reg.gst.gov.in/master/jursd/bypincode/${endpoint}`;
+      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(
+        targetUrl
+      )}`;
+      const res = await fetch(proxyUrl, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return null;
+      const text = await res.text();
+      const json = JSON.parse(text);
+      return json.data && json.data.length > 0 ? json.data : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // 0. Hard Clear on Invalid PIN
+  useEffect(() => {
+    if (!data.ppb_pin || data.ppb_pin.length !== 6) {
+      setJurisdictionData({
+        commissionerates: [],
+        wards: [],
+        divisions: [],
+        ranges: [],
+      });
+    }
+  }, [data.ppb_pin]);
+
+  // 1. PIN Code -> Fetch Address + Commissionerate/Wards
   useEffect(() => {
     if (data.ppb_pin?.length === 6) {
-      const loadData = async () => {
-        // 1. Fetch Address
+      const loadBaseData = async () => {
         const address = await fetchAddressByPin(data.ppb_pin);
         if (address) {
           const statesInIndia = getStatesForCountry("IN");
@@ -62,73 +92,118 @@ export default function Tab5_PPB({
             update("ppb_district", address.district);
             update("ppb_city", address.city);
 
-            // 2. High-Level Frontend Fetch Engine
-            try {
-              const fetchProxy = async (endpoint) => {
-                const targetUrl = `https://reg.gst.gov.in/master/jursd/bypincode/${endpoint}`;
-                // Fallback to CodeTabs which has high resilience against government firewalls
-                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
-                const res = await fetch(proxyUrl, { headers: { "Accept": "application/json" } });
-                
-                if (!res.ok) throw new Error("Proxy Blocked");
-                const text = await res.text();
-                
-                // Safe JSON parse limits browser console red errors
-                try {
-                  const json = JSON.parse(text);
-                  return json.data || [];
-                } catch (e) {
-                  throw new Error("Invalid API Response");
-                }
-              };
+            const commissionerates = await fetchProxy(
+              `commisionerate/${matchedState.value}/${data.ppb_pin}`
+            );
+            const wards = await fetchProxy(
+              `ward/${matchedState.value}/${data.ppb_pin}`
+            );
 
-              const commissionerates = await fetchProxy(`commisionerate/${matchedState.value}/${data.ppb_pin}`);
-              const wards = await fetchProxy(`ward/${matchedState.value}/${data.ppb_pin}`);
-              const divisions = await fetchProxy(`division/${matchedState.value}/WT/${data.ppb_pin}`);
-              
-              let ranges = [];
-              if (divisions && divisions.length > 0) {
-                const divCode = divisions[0].c;
-                ranges = await fetchProxy(`range/${matchedState.value}/${divCode}/${data.ppb_pin}`);
-              }
-
-              if (!commissionerates || commissionerates.length === 0) {
-                 throw new Error("Empty Data");
-              }
-
-              const liveData = { commissionerates, wards, divisions, ranges };
-              setJurisdictionData(liveData);
-
-              // Auto-fill real API options
-              if (liveData.commissionerates?.length > 0) update("center_commissionerate", liveData.commissionerates[0].c);
-              if (liveData.wards?.length > 0) update("sector_circle", liveData.wards[0].c);
-              if (liveData.divisions?.length > 0) update("center_division", liveData.divisions[0].c);
-              if (liveData.ranges?.length > 0) update("center_range", liveData.ranges[0].c);
-
-            } catch (err) {
-              // 3. Dynamic Fallback System - NEVER static
-              // Notice we use the 'address' lookup we already did on line 54!
-              const cityLabel = (address.city || address.district || "LOCAL").toUpperCase();
-              
-              const fallbackResults = {
-                commissionerates: [{ c: "C1", n: `${cityLabel} COMMISSIONERATE` }],
-                wards: [{ c: "W1", n: `${cityLabel} WARD 1` }, { c: "W2", n: `${cityLabel} WARD 2` }],
-                divisions: [{ c: "D1", n: `${cityLabel} DIVISION` }],
-                ranges: [{ c: "R1", n: `${cityLabel} RANGE I` }, { c: "R2", n: `${cityLabel} RANGE II` }]
-              };
-              
-              setJurisdictionData(fallbackResults);
-              update("center_commissionerate", fallbackResults.commissionerates[0].c);
-              update("sector_circle", fallbackResults.wards[0].c);
-              update("center_division", fallbackResults.divisions[0].c);
-              update("center_range", fallbackResults.ranges[0].c);
+            if (commissionerates && wards) {
+              setJurisdictionData((prev) => ({
+                ...prev,
+                commissionerates,
+                wards,
+                divisions: [], // Clear downstream
+                ranges: [], // Clear downstream
+              }));
+            } else {
+              // Fallback dynamically
+              const cityLabel = (
+                address.city ||
+                address.district ||
+                "LOCAL"
+              ).toUpperCase();
+              setJurisdictionData({
+                commissionerates: [
+                  { c: "C1", n: `${cityLabel} COMMISSIONERATE` },
+                ],
+                wards: [{ c: "W1", n: `${cityLabel} WARD 1` }],
+                divisions: [],
+                ranges: [],
+              });
             }
+
+            // Always clear existing selections when PIN newly matches
+            update("center_commissionerate", "");
+            update("sector_circle", "");
+            update("center_division", "");
+            update("center_range", "");
           }
         }
       };
-      loadData();
+      loadBaseData();
     }
-  }, [data.ppb_pin, update, fetchAddressByPin]);
+  }, [data.ppb_pin]);
+
+  // 2. Commissionerate Selected -> Fetch Divisions
+  useEffect(() => {
+    if (
+      data.ppb_pin?.length === 6 &&
+      data.ppb_state &&
+      data.center_commissionerate
+    ) {
+      const loadDivisions = async () => {
+        let divisions = null;
+        if (data.center_commissionerate !== "C1") {
+          divisions = await fetchProxy(
+            `division/${data.ppb_state}/${data.center_commissionerate}/${data.ppb_pin}`
+          );
+        }
+
+        if (divisions) {
+          setJurisdictionData((prev) => ({ ...prev, divisions, ranges: [] }));
+        } else {
+          // Fallback dynamically
+          setJurisdictionData((prev) => ({
+            ...prev,
+            divisions: [
+              {
+                c: "D1",
+                n: `FALLBACK DIVISION FOR ${
+                  data.ppb_city?.toUpperCase() || "ZONE"
+                }`,
+              },
+            ],
+            ranges: [],
+          }));
+        }
+
+        if (data.center_division) update("center_division", "");
+        if (data.center_range) update("center_range", "");
+      };
+      loadDivisions();
+    }
+  }, [data.center_commissionerate, data.ppb_pin, data.ppb_state]);
+
+  // 3. Division Selected -> Fetch Ranges
+  useEffect(() => {
+    if (data.ppb_pin?.length === 6 && data.ppb_state && data.center_division) {
+      const loadRanges = async () => {
+        let ranges = null;
+        if (data.center_division !== "D1") {
+          ranges = await fetchProxy(
+            `range/${data.ppb_state}/${data.center_division}/${data.ppb_pin}`
+          );
+        }
+
+        if (ranges) {
+          setJurisdictionData((prev) => ({ ...prev, ranges }));
+        } else {
+          setJurisdictionData((prev) => ({
+            ...prev,
+            ranges: [
+              { c: "R1", n: "RANGE I" },
+              { c: "R2", n: "RANGE II" },
+            ],
+          }));
+        }
+
+        if (data.center_range) update("center_range", "");
+      };
+      loadRanges();
+    }
+  }, [data.center_division, data.ppb_pin, data.ppb_state]);
 
   const stateItems = getStatesForCountry("IN");
   const districtItems = data.ppb_state

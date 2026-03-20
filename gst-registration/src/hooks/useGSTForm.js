@@ -16,7 +16,15 @@ export function useGSTForm() {
     }
   });
 
-  const [currentSubmissionId, setCurrentSubmissionId] = useState(null);
+  const [currentSubmissionId, setCurrentSubmissionId] = useState(() => {
+    try {
+      const savedId = localStorage.getItem("gst_submission_id");
+      return savedId ? parseInt(savedId, 10) : null;
+    } catch {
+      return null;
+    }
+  });
+  
   const [draftsList, setDraftsList] = useState([]);
 
   const [contactInfo] = useState(() => {
@@ -44,8 +52,13 @@ export function useGSTForm() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+      if (currentSubmissionId) {
+        localStorage.setItem("gst_submission_id", currentSubmissionId.toString());
+      } else {
+        localStorage.removeItem("gst_submission_id");
+      }
     } catch { /* skip if quota full */ }
-  }, [formData]);
+  }, [formData, currentSubmissionId]);
 
   const computeErrors = useCallback((data) => {
     const errs = {};
@@ -226,7 +239,9 @@ export function useGSTForm() {
 
       localStorage.setItem(STORAGE_KEY + "_submitted", JSON.stringify(formData));
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem("gst_submission_id");
       localStorage.removeItem("gst_stage");
+      setCurrentSubmissionId(null);
       navigate("/submitted");
     } catch (err) {
       setApiError(err.message || "Failed to submit. Please try again.");
@@ -238,6 +253,7 @@ export function useGSTForm() {
   const resetForm = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("gst_stage");
+    localStorage.removeItem("gst_submission_id");
     localStorage.removeItem("gst_contact");
     localStorage.removeItem("gst_otp_verified");
     setFormData(INITIAL_STATE);
