@@ -222,7 +222,7 @@ export function useGSTForm() {
   );
 
   const handleSubmit = useCallback(async () => {
-    touchAllInTab(10);
+    touchAllInTab(3);
     const allErrors = computeErrors(formData);
     const criticalFields = ["declaration", "signatory", "place"];
     if (criticalFields.some((field) => allErrors[field])) return;

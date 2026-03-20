@@ -4,16 +4,10 @@ import { useGSTForm } from "../../hooks/useGSTForm.js";
 import { TABS } from "../../constants/tabs.js";
 
 // Tab pages
-import Tab0_BusinessDetails from "./tabs/Tab0_BusinessDetails.jsx";
-import Tab1_Promoter from "./tabs/Tab1_Promoter.jsx";
-import Tab3_AuthSignatory from "./tabs/Tab3_AuthSignatory.jsx";
-import Tab4_AuthRep from "./tabs/Tab4_AuthRep.jsx";
-import Tab5_PPB from "./tabs/Tab5_PPB.jsx";
-import Tab6_APB from "./tabs/Tab6_APB.jsx";
-import Tab7_GoodsServices from "./tabs/Tab7_GoodsServices.jsx";
-import Tab8_StateSpecific from "./tabs/Tab8_StateSpecific.jsx";
-import Tab9_Aadhaar from "./tabs/Tab9_Aadhaar.jsx";
-import Tab10_Verification from "./tabs/Tab10_Verification.jsx";
+import Tab1_BusinessAndGoods from "./tabs/Tab1_BusinessAndGoods.jsx";
+import Tab2_People from "./tabs/Tab2_People.jsx";
+import Tab3_PlaceOfBusiness from "./tabs/Tab3_PlaceOfBusiness.jsx";
+import Tab4_AadhaarAndVerify from "./tabs/Tab4_AadhaarAndVerify.jsx";
 
 export default function GSTFormShell() {
   const navigate = useNavigate();
@@ -41,16 +35,10 @@ export default function GSTFormShell() {
   const props = { data: formData, update, errors, touched, touch, fetchAddressByPin };
 
   const pages = [
-    <Tab0_BusinessDetails {...props} />,
-    <Tab1_Promoter {...props} addPromoter={addPromoter} removePromoter={removePromoter} />,
-    <Tab3_AuthSignatory {...props} />,
-    <Tab4_AuthRep {...props} />,
-    <Tab5_PPB {...props} />,
-    <Tab6_APB {...props} />,
-    <Tab7_GoodsServices {...props} />,
-    <Tab8_StateSpecific {...props} />,
-    <Tab9_Aadhaar {...props} />,
-    <Tab10_Verification {...props} />,
+    <Tab1_BusinessAndGoods {...props} />,
+    <Tab2_People {...props} addPromoter={addPromoter} removePromoter={removePromoter} />,
+    <Tab3_PlaceOfBusiness {...props} />,
+    <Tab4_AadhaarAndVerify {...props} />,
   ];
 
   const tabErrors = getTabErrors(activeTab, formData);

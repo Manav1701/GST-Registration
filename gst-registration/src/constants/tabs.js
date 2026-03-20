@@ -1,14 +1,8 @@
 export const TABS = [
-  { label: "Business Details", key: "business" },
-  { label: "Promoters / Partners", key: "promoters" },
-  { label: "Details of Authorized Signatory", key: "authsig" },
-  { label: "Authorized Representative", key: "authrep" },
-  { label: "Principal Place of Business", key: "ppb" },
-  { label: "Additional Places of Business", key: "apb" },
-  { label: "Goods and Services", key: "goods" },
-  { label: "State Specific Information", key: "state" },
-  { label: "Aadhaar Authentication", key: "aadhaar" },
-  { label: "Verification", key: "verify" },
+  { label: "Business, Goods & State Info", key: "business" },
+  { label: "People (Promoters, Signatory & Rep)", key: "people" },
+  { label: "Place of Business", key: "place" },
+  { label: "Aadhaar & Verification", key: "verify" },
 ];
 
 export const STORAGE_KEY = "gst_reg_form_data";

@@ -86,15 +86,12 @@ export const validateField = (name, value, allData = {}) => {
 };
 
 export const TAB_REQUIRED_FIELDS = {
-  0: ["legal_name","pan","pan_date","Constitution of Business","trade_name","state","District","reason","commencement_date","commencement_date_1"],
-  1: ["name_first","name_last","dob","mobile","email","designation","pan_proprietor","country","pin_code","state_res","district_res","city_res","road_street_res","building_no_res"],
-  2: [],
-  3: ["as_name_first","as_name_last","as_dob","as_mobile","as_email","as_designation","as_pan","as_pin"],
-  4: ["radiogroup_2", "enrolment_id", "rep_name_first","rep_name_last","rep_mobile","rep_email","rep_pan"],
-  5: ["ppb_pin","ppb_state","ppb_premises","ppb_bno","sector_circle","center_commissionerate","center_division","center_range","ppb_possession_type","ppb_proof_doc"],
-  6: [],
-  7: [],
-  8: ["nature_of_possession_ppb","electricity_board","consumer_number"],
-  9: [],
-  10: ["declaration","signatory","place"],
+  // Tab 0: Business, Goods & State Info
+  0: ["legal_name","pan","pan_date","Constitution of Business","trade_name","state","District","reason","commencement_date","commencement_date_1","nature_of_possession_ppb","electricity_board","consumer_number"],
+  // Tab 1: People (Promoters + Signatory + Rep)
+  1: ["name_first","name_last","dob","mobile","email","designation","pan_proprietor","country","pin_code","state_res","district_res","city_res","road_street_res","building_no_res","as_name_first","as_name_last","as_dob","as_mobile","as_email","as_designation","as_pan","as_pin","radiogroup_2","enrolment_id","rep_name_first","rep_name_last","rep_mobile","rep_email","rep_pan"],
+  // Tab 2: Place of Business
+  2: ["ppb_pin","ppb_state","ppb_premises","ppb_bno","sector_circle","center_commissionerate","center_division","center_range","ppb_possession_type","ppb_proof_doc"],
+  // Tab 3: Aadhaar & Verification
+  3: ["declaration","signatory","place"],
 };
