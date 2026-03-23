@@ -1,20 +1,123 @@
-import { Country, State, City } from 'country-state-city';
+import { Country, State, City } from "country-state-city";
+import axios from "axios";
+import ENDPOINTS from "../api/endpoints.js";
+
+const API_BASE = 
+  import.meta.env.VITE_API_BASE_URL || 
+  "https://gst-fastapi-api-1.onrender.com";
 
 // --- Dynamic Global Data Helpers ---
-export const getAllCountries = () => 
-  Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name }));
+export const getAllCountries = () =>
+  Country.getAllCountries().map((c) => ({ value: c.isoCode, label: c.name }));
 
-export const getStatesForCountry = (countryCode) => 
-  State.getStatesOfCountry(countryCode).map(s => ({ value: s.isoCode, label: s.name }));
+export const getStatesForCountry = (countryCode) =>
+  State.getStatesOfCountry(countryCode).map((s) => ({
+    value: s.isoCode,
+    label: s.name,
+  }));
 
-export const getCitiesForState = (countryCode, stateCode) => 
-  City.getCitiesOfState(countryCode, stateCode).map(c => ({ value: c.name, label: c.name }));
+export const getCitiesForState = (countryCode, stateCode) =>
+  City.getCitiesOfState(countryCode, stateCode).map((c) => ({
+    value: c.name,
+    label: c.name,
+  }));
 
 // Maintain compatibility with existing code where static objects were expected
 export const COUNTRIES = getAllCountries();
-export const INDIAN_STATES = getStatesForCountry('IN');
+export const INDIAN_STATES = getStatesForCountry("IN");
 // DISTRICT_MAP will now be dynamic based on selection, so we export a helper or a proxy
-export const DISTRICT_MAP = {}; // Placeholder to avoid import errors, logic will use helpers
+export const DISTRICT_MAP = {}; 
+
+// GST numeric state code mapping (isoCode → GST code required by jurisdiction API)
+export const GST_STATE_CODE = {
+  JK: "01",
+  HP: "02",
+  PB: "03",
+  CH: "04",
+  UT: "05",
+  HR: "06",
+  DL: "07",
+  RJ: "08",
+  UP: "09",
+  BR: "10",
+  SK: "11",
+  AR: "12",
+  NL: "13",
+  MN: "14",
+  MZ: "15",
+  TR: "16",
+  ML: "17",
+  AS: "18",
+  WB: "19",
+  JH: "20",
+  OR: "21",
+  CT: "22",
+  MP: "23",
+  GJ: "24",
+  DN: "26",
+  DD: "26",
+  DH: "26",
+  MH: "27",
+  AP: "28",
+  KA: "29",
+  GA: "30",
+  LD: "31",
+  KL: "32",
+  TN: "33",
+  PY: "34",
+  AN: "35",
+  TG: "36",
+  AD: "37",
+};
+
+export async function getGstDistricts(stateIsoCode) {
+  const gstCode = GST_STATE_CODE[stateIsoCode];
+  if (!gstCode) return [];
+
+  const cacheKey = `districts_live_${gstCode}`;
+
+  // 1. Memory Cache lookup (Zero latency)
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
+  // 2. Try Professional Deployed Backend (FastAPI Proxy)
+  try {
+    const url = `${API_BASE}${ENDPOINTS.DISTRICTS}/${gstCode}`;
+    const { data } = await axios.get(url, { timeout: 5000 });
+    
+    // Only return if backend found actual data. If empty, proceed to local fallback.
+    if (Array.isArray(data) && data.length > 0) {
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch(e) {}
+      return data;
+    }
+  } catch (err) { /* Silent fail to fallback */ }
+
+  // 3. Last Resort Fallback: Use Local Package if Deployed API is slow/down/empty
+  const cities = City.getCitiesOfState("IN", stateIsoCode);
+  if (cities && cities.length > 0) {
+    return cities.map(c => ({ 
+      value: (stateIsoCode + c.name.substring(0, 3)).toUpperCase(), 
+      label: c.name 
+    }));
+  }
+
+  return [];
+}
+
+/**
+ * Normalization Helper:
+ * Ensures readable names (Ahmedabad) are matched to backend codes (GJAHM).
+ */
+export function normalizeDistrict(currentVal, items) {
+  if (!currentVal || !items || items.length === 0) return null;
+  const found = items.find(i => 
+    i.label?.toLowerCase().trim() === currentVal.toLowerCase().trim() ||
+    i.value === currentVal
+  );
+  return (found && found.value !== currentVal) ? found.value : null;
+}
 
 // --- Static GST constants ---
 
@@ -47,13 +150,20 @@ export const REGISTRATION_REASONS = [
   { value: "MEAM", label: "Merger / Amalgamation" },
   { value: "ECOM", label: "E-Commerce Operator" },
   { value: "DSEP", label: "Selling through e-Commerce portal" },
-  { value: "LPRS", label: "Liability to pay as recipient of goods or services" },
+  {
+    value: "LPRS",
+    label: "Liability to pay as recipient of goods or services",
+  },
   { value: "ISDN", label: "Input Service Distributor only" },
   { value: "SBOP", label: "Supplies on behalf of other taxable Person" },
   { value: "SEZU", label: "SEZ Unit" },
   { value: "SDEV", label: "SEZ Developer" },
   { value: "NOTA", label: "Others" },
-  { value: "AIRP", label: "Corporate Debtor undergoing the Corporate Insolvency Resolution Process with IRP/RP" },
+  {
+    value: "AIRP",
+    label:
+      "Corporate Debtor undergoing the Corporate Insolvency Resolution Process with IRP/RP",
+  },
 ];
 
 export const REG_TYPES = [
@@ -69,7 +179,10 @@ export const REG_TYPES = [
   { value: "hltax", label: "Hotel And Luxury Tax Registration Number" },
   { value: "cin", label: "Corporate Identity Number" },
   { value: "llpin", label: "LLP Identification Number" },
-  { value: "exact", label: "Registration under Medicinal and Toilet Preparations Act" },
+  {
+    value: "exact",
+    label: "Registration under Medicinal and Toilet Preparations Act",
+  },
   { value: "seact", label: "Registration under Shops and Establishment Act" },
   { value: "othr", label: "Others (Please specify)" },
 ];
@@ -112,7 +225,10 @@ export const ELECTRICITY_BOARDS = [
 
 export const AUTH_SIGNATORY_PROOF = [
   { value: "LOAU", label: "Letter of Authorisation" },
-  { value: "CRBC", label: "Copy of resolution passed by BoD / Managing Committee" },
+  {
+    value: "CRBC",
+    label: "Copy of resolution passed by BoD / Managing Committee",
+  },
 ];
 
 export const REP_DESIGNATIONS = [
@@ -120,75 +236,176 @@ export const REP_DESIGNATIONS = [
   { value: "csh", label: "Company Secretary holding COP" },
   { value: "CTA", label: "Cost Accountant holding COP" },
   { value: "lcip", label: "Lawyer currently licensed to practise" },
-  { value: "re", label: "Retired employee of Centre / State Revenue Department" },
+  {
+    value: "re",
+    label: "Retired employee of Centre / State Revenue Department",
+  },
   { value: "oth", label: "Others" },
 ];
 
-const GHATAK_NAMES = [
-  "Ahmedabad","Gan","Kalol","Him","Modasa","Idar","Prantij","Mehsana","Visnagar","Vijapur",
-  "Kadi","Pal","Deesa","Unza","Sidhhpur","Patan","Vadodara","Godhara","Dahod","Nadiad",
-  "Anand","Kapadvanj","Petlad","Khambhat","Bharuch","Ankleshwar","Surat","Vyara","Valsad",
-  "Bilimora","Navsari","Vapi","Bhavnagar","Mahuva","S-Nagar","Dhrangadhra","Amrli","S.Kundla",
-  "Junagadh","Porbandar","Varaval","Rajkot","Gondal","Jetpur","Dhoraji","Upleta","Jamnagar",
-  "Jam-Khambhalia","Bhuj","Gandhidham",
-];
-export const GHATAK_ITEMS = GHATAK_NAMES.map((n, i) => ({
-  value: `Ghatak ${i + 1} (${n})`,
-  label: `Ghatak ${i + 1} (${n})`,
-}));
-
 export const DOCUMENT_CONFIGS = [
   {
-    key: "aadhaar_card", label: "Aadhaar Card", icon: "🪪",
+    key: "aadhaar_card",
+    label: "Aadhaar Card",
+    icon: "🪪",
     description: "Front side of Aadhaar card",
     accept: "image/jpeg,image/png,application/pdf",
-    color: "#1B4FD8", bgColor: "#EEF4FF", borderColor: "#C7D9FF",
-    fillsFields: ["name_first","name_last","name_middle","dob","building_no_res","road_street_res","city_res","state_res","pin_code","aadhaar","district_res"],
+    color: "#1B4FD8",
+    bgColor: "#EEF4FF",
+    borderColor: "#C7D9FF",
+    fillsFields: [
+      "name_first",
+      "name_last",
+      "name_middle",
+      "dob",
+      "building_no_res",
+      "road_street_res",
+      "city_res",
+      "state_res",
+      "pin_code",
+      "aadhaar",
+      "district_res",
+    ],
   },
   {
-    key: "pan_card", label: "PAN Card", icon: "🗂️",
+    key: "pan_card",
+    label: "PAN Card",
+    icon: "🗂️",
     description: "Clear photo or scan of PAN card",
     accept: "image/jpeg,image/png,application/pdf",
-    color: "#059669", bgColor: "#F0FDF4", borderColor: "#BBF7D0",
-    fillsFields: ["pan","pan_proprietor","legal_name","name_first","name_last","dob","pan_date"],
+    color: "#059669",
+    bgColor: "#F0FDF4",
+    borderColor: "#BBF7D0",
+    fillsFields: [
+      "pan",
+      "pan_proprietor",
+      "legal_name",
+      "name_first",
+      "name_last",
+      "dob",
+      "pan_date",
+    ],
   },
   {
-    key: "address_proof", label: "Rent Agreement / Tax Bill / Electricity Bill", icon: "🏠",
+    key: "address_proof",
+    label: "Rent Agreement / Tax Bill / Electricity Bill",
+    icon: "🏠",
     description: "Any one valid address proof document",
     accept: "image/jpeg,image/png,application/pdf",
-    color: "#D97706", bgColor: "#FFFBEB", borderColor: "#FDE68A",
-    fillsFields: ["ppb_premises","ppb_bno","ppb_road","ppb_locality","ppb_pin","ppb_state","consumer_number","ppb_district"],
+    color: "#D97706",
+    bgColor: "#FFFBEB",
+    borderColor: "#FDE68A",
+    fillsFields: [
+      "ppb_premises",
+      "ppb_bno",
+      "ppb_road",
+      "ppb_locality",
+      "ppb_pin",
+      "ppb_state",
+      "consumer_number",
+      "ppb_district",
+    ],
   },
   {
-    key: "photograph", label: "Photograph", icon: "📷",
+    key: "photograph",
+    label: "Photograph",
+    icon: "📷",
     description: "Recent passport size photo (JPEG only)",
     accept: "image/jpeg,image/png",
-    color: "#7C3AED", bgColor: "#F5F3FF", borderColor: "#DDD6FE",
-    fillsFields: ["photo","as_photo","photo_2"],
+    color: "#7C3AED",
+    bgColor: "#F5F3FF",
+    borderColor: "#DDD6FE",
+    fillsFields: ["photo", "as_photo", "photo_2"],
   },
   {
-    key: "msme_certificate", label: "MSME Certificate", icon: "📜",
+    key: "msme_certificate",
+    label: "MSME Certificate",
+    icon: "📜",
     description: "If available — optional document",
     accept: "image/jpeg,image/png,application/pdf",
-    color: "#0891B2", bgColor: "#ECFEFF", borderColor: "#A5F3FC",
+    color: "#0891B2",
+    bgColor: "#ECFEFF",
+    borderColor: "#A5F3FC",
     optional: true,
-    fillsFields: ["trade_name","legal_name","commencement_date"],
+    fillsFields: ["trade_name", "legal_name", "commencement_date"],
   },
   {
-    key: "bank_document", label: "Cancel Cheque / Bank Statement", icon: "🏦",
+    key: "bank_document",
+    label: "Cancel Cheque / Bank Statement",
+    icon: "🏦",
     description: "First page of bank statement or cancel cheque",
     accept: "image/jpeg,image/png,application/pdf",
-    color: "#BE185D", bgColor: "#FDF2F8", borderColor: "#FBCFE8",
+    color: "#BE185D",
+    bgColor: "#FDF2F8",
+    borderColor: "#FBCFE8",
     fillsFields: ["legal_name"],
   },
 ];
 
 export const PIN_DATA = {
-  "380001": { state: "GJ", district: "GJAHM", city: "Ahmedabad" },
-  "380015": { state: "GJ", district: "GJAHM", city: "Vastrapur" },
-  "395003": { state: "GJ", district: "GJSUT", city: "Surat" },
-  "400001": { state: "MH", district: "MHMUM", city: "Mumbai" },
-  "411001": { state: "MH", district: "MHPUN", city: "Pune" },
-  "110001": { state: "DL", district: "DLNDL", city: "New Delhi" },
-  "302001": { state: "RJ", district: "RJJAI", city: "Jaipur" },
+  380001: { state: "GJ", district: "GJAHM", city: "Ahmedabad" },
+  380015: { state: "GJ", district: "GJAHM", city: "Vastrapur" },
+  395003: { state: "GJ", district: "GJSUT", city: "Surat" },
+  400001: { state: "MH", district: "MHMUM", city: "Mumbai" },
+  411001: { state: "MH", district: "MHPUN", city: "Pune" },
+  110001: { state: "DL", district: "DLNDL", city: "New Delhi" },
+  302001: { state: "RJ", district: "RJJAI", city: "Jaipur" },
 };
+
+// Ghatak (Sector/Circle/Ward) items for GST jurisdiction
+const GHATAK_NAMES = [
+  "Ahmedabad",
+  "Gandhinagar",
+  "Kalol",
+  "Himmatnagar",
+  "Modasa",
+  "Idar",
+  "Prantij",
+  "Mehsana",
+  "Visnagar",
+  "Vijapur",
+  "Kadi",
+  "Palanpur",
+  "Deesa",
+  "Unjha",
+  "Siddhpur",
+  "Patan",
+  "Vadodara",
+  "Godhra",
+  "Dahod",
+  "Nadiad",
+  "Anand",
+  "Kapadvanj",
+  "Petlad",
+  "Khambhat",
+  "Bharuch",
+  "Ankleshwar",
+  "Surat",
+  "Vyara",
+  "Valsad",
+  "Bilimora",
+  "Navsari",
+  "Vapi",
+  "Bhavnagar",
+  "Mahuva",
+  "Surendranagar",
+  "Dhrangadhra",
+  "Amreli",
+  "Savarkundla",
+  "Junagadh",
+  "Porbandar",
+  "Veraval",
+  "Rajkot",
+  "Gondal",
+  "Jetpur",
+  "Dhoraji",
+  "Upleta",
+  "Jamnagar",
+  "Jamkhambhalia",
+  "Bhuj",
+  "Gandhidham",
+];
+export const GHATAK_ITEMS = GHATAK_NAMES.map((n, i) => ({
+  value: `Ghatak ${i + 1} (${n})`,
+  label: `Ghatak ${i + 1} (${n})`,
+}));

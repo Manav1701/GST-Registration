@@ -22,19 +22,39 @@ function PromoterForm({ data, update, errors, touched, touch, suffix = "", fetch
     const pin = data[s("pin_code")];
     if (pin?.length === 6 && countryCode === "IN") {
       const loadAddress = async () => {
-        const address = await fetchAddressByPin(pin);
-        if (address) {
-          const matchedState = stateItems.find(s => s.label.toLowerCase() === address.stateName.toLowerCase());
-          if (matchedState) {
-            update(s("state_res"), matchedState.value);
-            update(s("district_res"), address.district);
-            update(s("city_res"), address.city);
+        try {
+          const address = await fetchAddressByPin(pin);
+          if (address && address.stateName) {
+            // Find state code by comparing label
+            const matchedState = stateItems.find(sItem => 
+              sItem.label.toLowerCase().trim() === address.stateName.toLowerCase().trim()
+            );
+            
+            if (matchedState) {
+              update(s("state_res"), matchedState.value);
+              // Wait for state to update, then set district
+              setTimeout(() => {
+                update(s("district_res"), address.district);
+                update(s("city_res"), address.city);
+              }, 50);
+            }
           }
+        } catch (err) {
+          console.error("PIN Fetch Error:", err);
         }
       };
       loadAddress();
     }
-  }, [data[s("pin_code")], update, s, countryCode, fetchAddressByPin, stateItems]);
+  }, [data[s("pin_code")], countryCode]); 
+
+  // 🎯 CITIZENSHIP -> COUNTRY SYNC
+  useEffect(() => {
+     if (data[s("toggle_2")] === true) {
+        if (!data[s("country")]) update(s("country"), "IN");
+     } else if (data[s("toggle_2")] === false) {
+        if (data[s("country")] === "IN") update(s("country"), "");
+     }
+  }, [data[s("toggle_2")]]);
 
   // REAL-TIME SYNC: Syncs Promoter 1 to Authorized Signatory section (Page 4)
   useEffect(() => {

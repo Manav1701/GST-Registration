@@ -34,7 +34,7 @@ export default function Tab4_AuthRep({ data, update, errors, touched, touch }) {
             items={[{value:"GST Practitioner",label:"GST Practitioner"},{value:"Other",label:"Other"}]}/>
           
           <Grid2>
-            <FormInput label="Enrolment ID" value={data.enrolment_id} onChange={(e)=>update("enrolment_id",e.target.value)} placeholder="e.g. TRP123456789012" disabled={isOther}/>
+            <FormInput label="Enrolment ID" value={data.enrolment_id} onChange={(e)=>update("enrolment_id",e.target.value)} placeholder="e.g. TRP123456789012" required disabled={isOther}/>
           </Grid2>
           
           <Grid3>

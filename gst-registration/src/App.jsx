@@ -14,6 +14,7 @@ const GLOBAL_STYLES = `
   @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(27,79,216,0.35);} 50%{box-shadow:0 0 0 8px rgba(27,79,216,0);} }
   @keyframes shake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} }
   @keyframes timerPulse { 0%,100%{color:#DC2626;} 50%{color:#F87171;} }
+  @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
   .field-animate { animation: fadeInUp 0.22s ease both; }
   .otp-box:focus { border-color: #1B4FD8 !important; box-shadow: 0 0 0 3px rgba(27,79,216,0.18) !important; animation: pulse 1.5s infinite; }
   .nav-btn:hover:not(:disabled) { transform: translateY(-1px); }

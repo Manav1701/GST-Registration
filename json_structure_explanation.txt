@@ -1,0 +1,40 @@
+HOW THE FLAT JSON LOOKS NOW (NO DOUBLE NESTING)
+
+Your Database row now looks exactly like this:
+
+{
+  "id": 15,
+  "form_key": "gst_registration",
+  "form_data": {
+    "legal_name": "Manav Prajapati",
+    "pan": "ABCDE1234F",
+    "pan_date": "2000-01-01",
+    "Constitution of Business": "FLL",
+    "trade_name": "My Business",
+    "state": "GJ",
+    "district_fixed": "Ahmedabad",
+    "dob": "1990-04-20",
+    "mobile": "9898989898",
+    "email": "manav@gmail.com",
+    "ppb_possession_type": "OWN",
+    ... (all other 120+ fields are here at the SAME level)
+  }
+}
+
+BEFORE (THE PROBLEM):
+Your JSON was "Double-Wrapped" like this:
+{
+  "id": 12,
+  "form_key": "gst_registration",
+  "form_data": {
+      "form_key": "gst_registration",  <-- Extra Wrapper
+      "form_data": {                 <-- Extra Wrapper
+          "legal_name": "..."
+      }
+  }
+}
+
+THE SOLUTION:
+I have cleaned 'gstApi.js' so it only sends the data ONCE. 
+Now the 'form_data' column in your database will directly contain the business fields.
+This allows the Dropdown to see the 'legal_name' immediately!

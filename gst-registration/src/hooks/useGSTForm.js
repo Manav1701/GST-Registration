@@ -1,8 +1,37 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { INITIAL_STATE, STORAGE_KEY } from "../constants/tabs.js";
 import { validateField, TAB_REQUIRED_FIELDS } from "../constants/validation.js";
-import { submitGSTForm, updateGSTForm, getSubmissions, getSubmission } from "../api/gstApi.js";
+import { getStatesForCountry, COUNTRIES } from "../constants/dropdowns.js";
+import {
+  submitGSTForm,
+  updateGSTForm,
+  getSubmissions,
+  getSubmission,
+} from "../api/gstApi.js";
+
+// RECURSIVE SEARCH: Dives deep into any object to find a specific key-value pair
+const findKeyDeep = (obj, targetKey) => {
+  if (!obj || typeof obj !== "object") return undefined;
+  if (Object.prototype.hasOwnProperty.call(obj, targetKey)) return obj[targetKey];
+  for (const k in obj) {
+    if (obj[k] && typeof obj[k] === "object") {
+      const result = findKeyDeep(obj[k], targetKey);
+      if (result !== undefined) return result;
+    }
+  }
+  return undefined;
+};
+
+// PAYLOAD EXTRACTOR: Dives deep into wrappers until it finds the actual form fields
+const getFieldsRecursive = (obj) => {
+  if (!obj || typeof obj !== "object") return {};
+  // If this level has the core fields, this is the payload
+  if (obj.legal_name || obj._contact_mobile || obj.trade_name || obj.mobile) return obj;
+  // If it's a wrapper around form_data, dive in
+  if (obj.form_data) return getFieldsRecursive(obj.form_data);
+  return obj;
+};
 
 export function useGSTForm() {
   const navigate = useNavigate();
@@ -24,7 +53,7 @@ export function useGSTForm() {
       return null;
     }
   });
-  
+
   const [draftsList, setDraftsList] = useState([]);
 
   const [contactInfo] = useState(() => {
@@ -53,11 +82,16 @@ export function useGSTForm() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
       if (currentSubmissionId) {
-        localStorage.setItem("gst_submission_id", currentSubmissionId.toString());
+        localStorage.setItem(
+          "gst_submission_id",
+          currentSubmissionId.toString()
+        );
       } else {
         localStorage.removeItem("gst_submission_id");
       }
-    } catch { /* skip if quota full */ }
+    } catch {
+      /* skip if quota full */
+    }
   }, [formData, currentSubmissionId]);
 
   const computeErrors = useCallback((data) => {
@@ -111,9 +145,15 @@ export function useGSTForm() {
       const result = await resp.json();
       if (result?.[0]?.Status === "Success" && result[0].PostOffice?.[0]) {
         const po = result[0].PostOffice[0];
-        return { stateName: po.State, district: po.District, city: po.Block || po.Name };
+        return {
+          stateName: po.State,
+          district: po.District,
+          city: po.Block || po.Name,
+        };
       }
-    } catch (err) { console.warn("[fetchAddressByPin] Failed:", err.message); }
+    } catch (err) {
+      console.warn("[fetchAddressByPin] Failed:", err.message);
+    }
     return null;
   }, []);
 
@@ -123,27 +163,36 @@ export function useGSTForm() {
         setDraftsList([]);
         return;
       }
-      
+
       // FETCH ALL from existing API
       const allSubmissions = await getSubmissions();
-      
-      // FILTER in Frontend by mobile
-      const filtered = allSubmissions.filter(s => {
-        const data = s.form_data || {};
-        return String(data.mobile) === String(mobile) || 
-               String(data._contact_mobile) === String(mobile) || 
-               String(data.as_mobile) === String(mobile);
+
+      // 1. FILTER: Find all submissions that contain the target _contact_mobile anywhere in their structure
+      const filtered = allSubmissions.filter((s) => {
+        const val = findKeyDeep(s, "_contact_mobile");
+        return String(val || "") === String(mobile);
       });
 
-      // Show Legal Name in dropdown
-      const drafts = filtered.map(s => ({
-        id: s.id,
-        legal_name: s.form_data?.legal_name || s.form_data?.trade_name || `Draft ${s.id}`
-      }));
+      // 2. MAP: Extract the most meaningful Label for the dropdown from the matched records
+      const drafts = filtered.map((s) => {
+        const payload = getFieldsRecursive(s);
+        const nameText = 
+          payload.legal_name || 
+          s.legal_name || 
+          payload.trade_name || 
+          s.trade_name || 
+          payload.name_first || 
+          `Draft #${s.id}`;
+          
+        return {
+          id: s.id,
+          legal_name: String(nameText).toUpperCase(),
+        };
+      });
 
       setDraftsList(drafts);
-    } catch (err) { 
-      console.error("Failed to load drafts from submissions:", err); 
+    } catch (err) {
+      console.error("Failed to load drafts from submissions:", err);
       setDraftsList([]);
     }
   }, []);
@@ -154,10 +203,109 @@ export function useGSTForm() {
       setIsSubmitting(true);
       // Fetches the full JSON from the server by ID
       const submission = await getSubmission(id);
-      
-      if (submission && submission.form_data) {
-        // Deep merge INITIAL_STATE with form_data to handle missing keys
-        setFormData({ ...INITIAL_STATE, ...submission.form_data });
+
+      if (submission) {
+        // USE SMART RECURSIVE EXTRACTOR to get fields from any depth level
+        const raw = getFieldsRecursive(submission);
+        const allStates = getStatesForCountry("IN");
+
+        const processField = (key, val) => {
+          // Only skip truly missing values — NOT false, NOT 0, NOT ""
+          if (val === null || val === undefined) return val;
+
+          const k = key.toLowerCase();
+
+          // 1. DATE NORMALIZER (Ensure YYYY-MM-DD for HTML date inputs)
+          if (k.includes("date") || k.includes("dob")) {
+            if (typeof val !== "string") return val;
+            const cleaned = val.replace(/[-]/g, "/");
+            const parts = cleaned.split("/");
+            if (parts.length === 3) {
+              const [p1, p2, p3] = parts;
+              if (p1.length === 4)
+                return `${p1}-${p2.padStart(2, "0")}-${p3.padStart(2, "0")}`;
+              return `${p3}-${p2.padStart(2, "0")}-${p1.padStart(2, "0")}`;
+            }
+            return val;
+          }
+
+          // 2. STATE MAPPER — convert full name to isoCode for dropdown
+          if (
+            k.includes("state") &&
+            !k.includes("state_excise") &&
+            !k.includes("statement")
+          ) {
+            const found = allStates.find(
+              (s) =>
+                s.label.toLowerCase() === String(val).toLowerCase() ||
+                s.value === val
+            );
+            return found ? found.value : val;
+          }
+
+          // 3. COUNTRY MAPPER
+          if (k.includes("country")) {
+            if (val === "IND" || val === "India") return "IN";
+            const found = COUNTRIES.find(
+              (c) =>
+                c.label.toLowerCase() === String(val).toLowerCase() ||
+                c.value === val
+            );
+            return found ? found.value : val;
+          }
+
+          // 4. DISTRICT — pass through as-is
+          if (k.includes("district")) return val;
+
+          // 5. Booleans — keep as boolean, don't convert
+          if (typeof val === "boolean") return val;
+
+          // 6. Arrays — keep as-is
+          if (Array.isArray(val)) return val;
+
+          // 7. Objects — keep as-is
+          if (typeof val === "object") return val;
+
+          // 8. Everything else — pass through
+          return val;
+        };
+
+        const processed = { ...raw };
+
+        // 9. REPS & PROMOTERS SYNC: Map all gender fields to the unified 'radiogroup_1' scheme
+        if (raw.radiogroup && !processed.radiogroup_1) {
+          processed.radiogroup_1 = raw.radiogroup;
+        }
+        if (raw.radiogroup_2_2 && !processed.radiogroup_1_2) {
+          processed.radiogroup_1_2 = raw.radiogroup_2_2;
+        }
+        if (raw.radiogroup_2 && !processed.radiogroup_2) {
+          processed.radiogroup_2 = raw.radiogroup_2; // Ensure representative type stays separated
+        }
+
+        Object.keys(processed).forEach((key) => {
+          processed[key] = processField(key, processed[key]);
+        });
+
+        // Strip any API wrapper keys that must never go into formData state
+        [
+          "form_key",
+          "form_data",
+          "id",
+          "created_at",
+          "updated_at",
+          "raw_data",
+        ].forEach((k) => delete processed[k]);
+
+        console.log("🛠️ DEBUG: Loaded from DB (Raw):", raw);
+        console.log("🛠️ DEBUG: Processed for Form:", processed);
+
+        // Clean merge: INITIAL_STATE as base, then DB values on top
+        // No ...prev — avoids old/stale state polluting the loaded draft
+        setFormData({
+          ...INITIAL_STATE,
+          ...processed,
+        });
         setCurrentSubmissionId(id);
         setActiveTab(0);
         setErrors({});
@@ -179,19 +327,36 @@ export function useGSTForm() {
       if (tabIdx === 1) {
         const ids = formData.promoter_ids || [""];
         const baseFields = [
-          "name_first", "name_last", "dob", "mobile", "email", 
-          "designation", "pan_proprietor", "country", "pin_code", 
-          "state_res", "district_res", "city_res", "road_street_res", "building_no_res"
+          "name_first",
+          "name_last",
+          "dob",
+          "mobile",
+          "email",
+          "designation",
+          "pan_proprietor",
+          "country",
+          "pin_code",
+          "state_res",
+          "district_res",
+          "city_res",
+          "road_street_res",
+          "building_no_res",
         ];
-        fields = ids.flatMap(id => baseFields.map(f => id ? `${f}${id}` : f));
+        fields = ids.flatMap((id) =>
+          baseFields.map((f) => (id ? `${f}${id}` : f))
+        );
       }
 
       const newTouched = {};
-      fields.forEach((f) => { newTouched[f] = true; });
+      fields.forEach((f) => {
+        newTouched[f] = true;
+      });
       setTouched((prev) => ({ ...prev, ...newTouched }));
       const errs = computeErrors(formData);
       const newErrors = {};
-      fields.forEach((f) => { if (errs[f]) newErrors[f] = errs[f]; });
+      fields.forEach((f) => {
+        if (errs[f]) newErrors[f] = errs[f];
+      });
       setErrors((prev) => ({ ...prev, ...newErrors }));
       return fields.filter((f) => errs[f]).length;
     },
@@ -201,7 +366,10 @@ export function useGSTForm() {
   const handleSaveContinue = useCallback(
     (activeTabIdx, totalTabs) => {
       if (errors.apb_notice) {
-        setErrors(prev => { const { apb_notice, ...rest } = prev; return rest; });
+        setErrors((prev) => {
+          const { apb_notice, ...rest } = prev;
+          return rest;
+        });
       }
       const errCount = touchAllInTab(activeTabIdx);
       if (errCount > 0) {
@@ -237,10 +405,14 @@ export function useGSTForm() {
         await submitGSTForm(formData, contactInfo);
       }
 
-      localStorage.setItem(STORAGE_KEY + "_submitted", JSON.stringify(formData));
+      localStorage.setItem(
+        STORAGE_KEY + "_submitted",
+        JSON.stringify(formData)
+      );
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("gst_submission_id");
       localStorage.removeItem("gst_stage");
+      sessionStorage.removeItem("gst_sidebar_refs"); // Clear sidebar reference docs
       setCurrentSubmissionId(null);
       navigate("/submitted");
     } catch (err) {
@@ -248,7 +420,14 @@ export function useGSTForm() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, contactInfo, touchAllInTab, computeErrors, navigate, currentSubmissionId]);
+  }, [
+    formData,
+    contactInfo,
+    touchAllInTab,
+    computeErrors,
+    navigate,
+    currentSubmissionId,
+  ]);
 
   const resetForm = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
@@ -265,6 +444,19 @@ export function useGSTForm() {
     navigate("/");
   }, [navigate]);
 
+  // Clears the selected draft WITHOUT full reset — stays on the form page so
+  // user can start filling a brand new registration after reviewing an old one.
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("gst_submission_id");
+    setFormData(INITIAL_STATE);
+    setCurrentSubmissionId(null);
+    setActiveTab(0);
+    setTouched({});
+    setErrors({});
+    setTabStatus({});
+  }, []);
+
   const addPromoter = useCallback(() => {
     setFormData((prev) => {
       const ids = prev.promoter_ids || [""];
@@ -280,7 +472,7 @@ export function useGSTForm() {
         [`pan_proprietor${newSuffix}`]: "",
         [`photo${newSuffix}`]: null,
         [`country${newSuffix}`]: "IND",
-        [`radiogroup${newSuffix}`]: null,
+        [`radiogroup_1${newSuffix}`]: null,
         [`toggle_2${newSuffix}`]: false,
         [`Also Authorized Signatory${newSuffix}`]: false,
       };
@@ -296,10 +488,31 @@ export function useGSTForm() {
   }, []);
 
   return {
-    formData, contactInfo, errors, touched, tabStatus, activeTab,
-    setActiveTab, isSubmitting, apiError, showTabWarning, update,
-    touch, applyAutoFill, handleSaveContinue, handleSubmit, resetForm,
-    getTabErrors, computeErrors, fetchAddressByPin, fetchDrafts, 
-    loadDraft, draftsList, currentSubmissionId, addPromoter, removePromoter
+    formData,
+    contactInfo,
+    errors,
+    touched,
+    tabStatus,
+    activeTab,
+    setActiveTab,
+    isSubmitting,
+    apiError,
+    showTabWarning,
+    update,
+    touch,
+    applyAutoFill,
+    handleSaveContinue,
+    handleSubmit,
+    resetForm,
+    clearDraft,
+    getTabErrors,
+    computeErrors,
+    fetchAddressByPin,
+    fetchDrafts,
+    loadDraft,
+    draftsList,
+    currentSubmissionId,
+    addPromoter,
+    removePromoter,
   };
 }

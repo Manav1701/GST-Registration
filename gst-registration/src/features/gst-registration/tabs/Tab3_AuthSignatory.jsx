@@ -13,13 +13,14 @@ export default function Tab3_AuthSignatory({ data, update, errors, touched, touc
   const stateItems = getStatesForCountry(countryCode);
   const districtItems = stateCode ? getCitiesForState(countryCode, stateCode) : [];
 
-  // PIN Code Auto-fill Logic (Live API for India)
+  // PIN Code Auto-fill — fixed deps (only pin value, no arrays/functions)
   useEffect(() => {
-    if (data.as_pin?.length === 6 && countryCode === "IN") {
+    if (data.as_pin?.length === 6 && (data.as_country || "IN") === "IN") {
       const loadAddress = async () => {
         const address = await fetchAddressByPin(data.as_pin);
         if (address) {
-          const matchedState = stateItems.find(s => s.label.toLowerCase() === address.stateName.toLowerCase());
+          const allStates = getStatesForCountry("IN");
+          const matchedState = allStates.find(s => s.label.toLowerCase() === address.stateName.toLowerCase());
           if (matchedState) {
             update("as_state", matchedState.value);
             update("as_district", address.district);
@@ -29,7 +30,18 @@ export default function Tab3_AuthSignatory({ data, update, errors, touched, touc
       };
       loadAddress();
     }
-  }, [data.as_pin, update, countryCode, fetchAddressByPin, stateItems]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.as_pin]);
+
+  // Citizenship toggle → auto-set/clear as_country
+  useEffect(() => {
+    if (data.toggle_3 === true) {
+      update("as_country", "IN");
+    } else if (data.toggle_3 === false) {
+      if (data.as_country === "IN") update("as_country", "");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.toggle_3]);
 
   return (
     <>
