@@ -39,8 +39,8 @@ export default function OTPPage() {
   );
 
   return (
-    <div style={{ minHeight:"100vh", background:"#F4F6FA", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-      <div style={{ background:"#fff", borderRadius:20, border:"1px solid #E2E8F0", padding:"44px 40px", maxWidth:520, width:"100%", boxShadow:"0 8px 40px rgba(15,23,42,0.1)", animation:"fadeInUp 0.35s ease both" }}>
+    <div style={{ minHeight:"100vh", background:"#F4F6FA", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <div className="section-card-content" style={{ background:"#fff", borderRadius:20, border:"1px solid #E2E8F0", maxWidth:520, width:"100%", boxShadow:"0 8px 40px rgba(15,23,42,0.1)", animation:"fadeInUp 0.35s ease both" }}>
         <div style={{ textAlign:"center", marginBottom:30 }}>
           <div style={{ width:52, height:52, borderRadius:14, background:"linear-gradient(135deg,#1B4FD8,#3B82F6)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px", boxShadow:"0 6px 18px rgba(27,79,216,0.3)" }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>

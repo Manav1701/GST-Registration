@@ -181,16 +181,7 @@ export default function GSTFormShell() {
   const tabErrors = getTabErrors(activeTab, formData);
 
   return (
-    <div
-      style={{
-        maxWidth: 1400,
-        margin: "0 auto",
-        padding: "22px 24px",
-        display: "flex",
-        gap: 22,
-        alignItems: "flex-start",
-      }}
-    >
+    <div className="main-container">
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -199,13 +190,9 @@ export default function GSTFormShell() {
         onChange={onFileChange} 
       />
       {/* Sidebar Workspace */}
-      <aside style={{ 
+      <aside className="sidebar-sticky" style={{ 
         width: isSidebarCollapsed ? 58 : 248, 
         flexShrink: 0, 
-        position: "sticky", 
-        top: 82,
-        transition: "width 0.4s cubic-bezier(0.19, 1, 0.22, 1)",
-        zIndex: 100
       }}>
         {isSidebarCollapsed ? (
           <button 
@@ -234,6 +221,7 @@ export default function GSTFormShell() {
           </button>
         ) : (
           <div
+            className="sidebar-content"
             style={{
               background: "#fff",
               borderRadius: 14,
@@ -555,10 +543,13 @@ export default function GSTFormShell() {
             alignItems: "center",
             justifyContent: "space-between",
             transition: "all 0.3s",
+            flexWrap: "wrap",
+            gap: 12
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 200 }}>
             <div
+              className="hide-mobile"
               style={{
                 width: 36,
                 height: 36,
@@ -568,11 +559,12 @@ export default function GSTFormShell() {
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 18,
+                flexShrink: 0
               }}
             >
               {currentSubmissionId ? "📝" : "📂"}
             </div>
-            <div>
+            <div style={{ flex: 1 }}>
               <div
                 style={{
                   fontSize: 10.5,
@@ -587,7 +579,7 @@ export default function GSTFormShell() {
                   ? `✏️ Editing Record #${currentSubmissionId}`
                   : "Resume Application"}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <select
                   value={currentSubmissionId || ""}
                   onChange={(e) => {
@@ -607,6 +599,7 @@ export default function GSTFormShell() {
                     color: "#1E293B",
                     cursor: "pointer",
                     padding: "2px 0",
+                    maxWidth: "100%"
                   }}
                 >
                   <option value="">✨ New Registration (fresh form)</option>
@@ -637,7 +630,7 @@ export default function GSTFormShell() {
                       cursor: "pointer",
                     }}
                   >
-                    ✖ Deselect
+                    ✖ <span className="hide-mobile">Deselect</span>
                   </button>
                 )}
               </div>
@@ -661,7 +654,7 @@ export default function GSTFormShell() {
             onMouseOver={(e) => (e.target.style.background = "#F1F5F9")}
             onMouseOut={(e) => (e.target.style.background = "#fff")}
           >
-            🏠 Home
+            🏠 <span className="hide-mobile">Home</span>
           </button>
         </div>
 
@@ -698,6 +691,8 @@ export default function GSTFormShell() {
             alignItems: "center",
             justifyContent: "space-between",
             boxShadow: "0 1px 4px rgba(15,23,42,0.04)",
+            flexWrap: "wrap",
+            gap: 12
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -779,6 +774,8 @@ export default function GSTFormShell() {
             alignItems: "center",
             justifyContent: "space-between",
             boxShadow: "0 1px 4px rgba(15,23,42,0.04)",
+            flexWrap: "wrap",
+            gap: 12
           }}
         >
           <button

@@ -81,8 +81,8 @@ export default function Tab1_BusinessAndGoods({
             {...f("legal_name")}
             placeholder="As per PAN records"
           />
-          <div style={{ display: "flex", gap: 10 }}>
-            <div style={{ flex: "0 0 14ch" }}>
+          <div className="mobile-flex-wrap" style={{ gap: 10 }}>
+            <div style={{ flex: "0 0 14ch", minWidth: "14ch" }}>
               <FormInput
                 label="PAN"
                 required

@@ -6,7 +6,7 @@ export default function ReviewSection({ title, icon, rows }) {
         <h3 style={{ fontSize:12, fontWeight:800, color:"#1B4FD8", textTransform:"uppercase", letterSpacing:"0.07em" }}>{title}</h3>
       </div>
       <div style={{ padding:"14px 20px" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"10px 24px" }}>
+        <div className="responsive-grid-2" style={{ gap:"10px 24px" }}>
           {rows.filter(r=>r.value).map((row,i)=>(
             <div key={i} style={{ borderBottom:"1px solid #F1F5F9", paddingBottom:8 }}>
               <div style={{ fontSize:10.5, fontWeight:700, color:"#94A3B8", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:2 }}>{row.label}</div>

@@ -126,17 +126,20 @@ export default function DocumentUploadPage() {
         }}
       >
         <div
+          className="header-content"
           style={{
             maxWidth: 900,
             margin: "0 auto",
             padding: "0 24px",
-            height: 62,
+            minHeight: 62,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 10
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0" }}>
             <div
               style={{
                 width: 36,
@@ -146,6 +149,7 @@ export default function DocumentUploadPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0
               }}
             >
               <svg
@@ -160,7 +164,7 @@ export default function DocumentUploadPage() {
                 <polyline points="14 2 14 8 20 8" />
               </svg>
             </div>
-            <div>
+            <div className="logo-text">
               <div style={{ fontSize: 14, fontWeight: 800, color: "#1E293B" }}>
                 GST Registration
               </div>
@@ -177,7 +181,12 @@ export default function DocumentUploadPage() {
             </div>
           </div>
           {/* Steps */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="show-mobile" style={{ display: "none" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#1B4FD8" }}>
+              STEP 2 OF 5
+            </span>
+          </div>
+          <div className="hide-mobile" style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {["Contact", "OTP", "Documents", "Form", "Review"].map((s, i) => (
               <div
                 key={i}
@@ -227,9 +236,10 @@ export default function DocumentUploadPage() {
             marginBottom: 22,
             boxShadow: "0 1px 4px rgba(15,23,42,0.04)",
             display: "flex",
-            alignItems: "flex-start",
+            alignItems: "center",
             justifyContent: "space-between",
             gap: 20,
+            flexWrap: "wrap"
           }}
         >
           <div>
@@ -300,9 +310,8 @@ export default function DocumentUploadPage() {
 
         {/* Cards grid */}
         <div
+          className="responsive-grid-2"
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2,1fr)",
             gap: 16,
             marginBottom: 20,
           }}
@@ -696,6 +705,8 @@ export default function DocumentUploadPage() {
             alignItems: "center",
             justifyContent: "space-between",
             boxShadow: "0 1px 4px rgba(15,23,42,0.04)",
+            flexWrap: "wrap",
+            gap: 12
           }}
         >
           <button

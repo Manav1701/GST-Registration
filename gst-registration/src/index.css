@@ -1,0 +1,163 @@
+/* ─── Responsive Utilities & Base Styles ─── */
+
+:root {
+  --primary: #1B4FD8;
+  --primary-gradient: linear-gradient(135deg, #1B4FD8, #3B82F6);
+  --success: #10B981;
+  --success-gradient: linear-gradient(135deg, #059669, #10B981);
+  --bg-main: #F4F6FA;
+  --text-main: #1A2235;
+  --text-muted: #64748B;
+  --border-light: #E2E8F0;
+  --white: #ffffff;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.field-animate {
+  animation: fadeInUp 0.22s ease both;
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Responsive Grids */
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 18px;
+}
+
+.responsive-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 18px;
+}
+
+@media (max-width: 1024px) {
+  .responsive-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-grid-2,
+  .responsive-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 12px 0 !important;
+  }
+  
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  .show-mobile {
+    display: block !important;
+  }
+
+  .mobile-column {
+    flex-direction: column !important;
+  }
+}
+
+/* Layout Classes */
+.main-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 22px 24px;
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  background: #FAFBFE;
+  min-height: calc(100vh - 65px);
+}
+
+@media (max-width: 992px) {
+  .main-container {
+    flex-direction: column;
+    padding: 16px;
+    gap: 16px;
+  }
+}
+
+/* Sidebar Responsive Styles */
+.sidebar-sticky {
+  position: sticky;
+  top: 82px;
+  transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  z-index: 100;
+}
+
+@media (max-width: 992px) {
+  .main-container {
+    flex-direction: column !important;
+  }
+  
+  .sidebar-sticky {
+    position: relative;
+    top: 0;
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  
+  .sidebar-content {
+    height: auto !important;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+}
+
+/* Header Compact for Mobile */
+@media (max-width: 640px) {
+  .header-content {
+    padding: 0 12px !important;
+  }
+  
+  .logo-text {
+    display: none;
+  }
+}
+
+/* Section Card Responsive */
+.section-card-content {
+  padding: 22px;
+}
+
+@media (max-width: 640px) {
+  .section-card-content {
+    padding: 16px;
+  }
+}
+
+/* OTP Box Responsive */
+@media (max-width: 480px) {
+  .otp-box {
+    width: 38px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+}
+
+.mobile-flex-wrap {
+  display: flex;
+}
+
+@media (max-width: 640px) {
+  .mobile-flex-wrap {
+    flex-wrap: wrap !important;
+  }
+}
+
+.gap-12 {
+  gap: 12px;
+}

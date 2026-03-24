@@ -157,7 +157,7 @@ export const SectionCard = ({ title, icon, children }) => (
       {icon && <span style={{ fontSize:16 }}>{icon}</span>}
       <h3 style={{ fontSize:12, fontWeight:800, color:"#1B4FD8", letterSpacing:"0.07em", textTransform:"uppercase" }}>{title}</h3>
     </div>
-    <div style={{ padding:22 }}>{children}</div>
+    <div className="section-card-content">{children}</div>
   </div>
 );
 
@@ -177,11 +177,11 @@ export const InfoAlert = ({ children, type="info" }) => {
 };
 
 export const Grid2 = ({ children }) => (
-  <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"0 18px" }}>{children}</div>
+  <div className="responsive-grid-2" style={{ gap:"0 18px" }}>{children}</div>
 );
 
 export const Grid3 = ({ children }) => (
-  <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"0 18px" }}>{children}</div>
+  <div className="responsive-grid-3" style={{ gap:"0 18px" }}>{children}</div>
 );
 
 export const DynamicList = ({ value=[], onChange, renderItem, emptyItem, addLabel }) => (

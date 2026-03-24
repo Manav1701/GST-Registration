@@ -1,7 +1,3 @@
-/**
- * Professional Ultra-Resilient Fetcher
- * Strategy: Always use a fast CORS proxy for remote Render servers.
- */
 export async function smartFetch(url, options = {}) {
   const { 
     retries = 2, 

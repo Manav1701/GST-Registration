@@ -9,9 +9,9 @@ export default function ReviewPage() {
   const getLabel = (arr, val) => arr.find((i) => i.value === val)?.label || val;
 
   return (
-    <div style={{ maxWidth:1000, margin:"0 auto", padding:"28px 24px", animation:"fadeInUp 0.3s ease both" }}>
+    <div className="section-card-content" style={{ maxWidth:1000, margin:"0 auto", animation:"fadeInUp 0.3s ease both" }}>
       {/* Header card */}
-      <div style={{ background:"linear-gradient(135deg,#EEF4FF,#F8FAFC)", border:"1px solid #C7D9FF", borderRadius:12, padding:"18px 22px", marginBottom:20, display:"flex", alignItems:"center", gap:14 }}>
+      <div style={{ background:"linear-gradient(135deg,#EEF4FF,#F8FAFC)", border:"1px solid #C7D9FF", borderRadius:12, padding:"18px 22px", marginBottom:20, display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
         <div style={{ width:44, height:44, borderRadius:12, background:"#1B4FD8", display:"flex", alignItems:"center", justifyContent:"center" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         </div>
@@ -110,14 +110,14 @@ export default function ReviewPage() {
       )}
 
       {/* Buttons */}
-      <div style={{ background:"#fff", borderRadius:14, border:"1px solid #E2E8F0", padding:"20px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 1px 4px rgba(15,23,42,0.05)" }}>
+      <div style={{ background:"#fff", borderRadius:14, border:"1px solid #E2E8F0", padding:"20px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 1px 4px rgba(15,23,42,0.05)", flexWrap:"wrap", gap:14 }}>
         <button onClick={()=>navigate("/form")} className="nav-btn"
           style={{ display:"flex", alignItems:"center", gap:8, padding:"11px 20px", border:"1.5px solid #E2E8F0", background:"#fff", borderRadius:10, fontSize:13.5, fontWeight:600, color:"#374151", cursor:"pointer" }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Details
         </button>
         <button onClick={handleSubmit} disabled={isSubmitting||!formData.declaration} className="nav-btn"
-          style={{ display:"flex", alignItems:"center", gap:10, padding:"13px 30px", background:!formData.declaration||isSubmitting?"#94A3B8":"linear-gradient(135deg,#1B4FD8,#3B82F6)", color:"#fff", border:"none", borderRadius:12, fontSize:15, fontWeight:800, cursor:!formData.declaration||isSubmitting?"not-allowed":"pointer", boxShadow:!formData.declaration||isSubmitting?"none":"0 6px 18px rgba(27,79,216,0.35)" }}>
+          style={{ display:"flex", alignItems:"center", gap:10, padding:"13px 30px", background:!formData.declaration||isSubmitting?"#94A3B8":"linear-gradient(135deg,#1B4FD8,#3B82F6)", color:"#fff", border:"none", borderRadius:12, fontSize:15, fontWeight:800, cursor:!formData.declaration||isSubmitting?"not-allowed":"pointer", boxShadow:!formData.declaration||isSubmitting?"none":"0 6px 18px rgba(27,79,216,0.35)", minWidth:200, justifyContent:"center" }}>
           {isSubmitting?<><div style={{ width:17, height:17, border:"2px solid #ffffff40", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>Submitting...</>:<><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Confirm & Submit</>}
         </button>
       </div>

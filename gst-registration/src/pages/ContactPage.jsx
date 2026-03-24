@@ -23,8 +23,8 @@ export default function ContactPage() {
   };
 
   return (
-    <div style={{ minHeight:"100vh", background:"#F4F6FA", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-      <div style={{ background:"#fff", borderRadius:20, border:"1px solid #E2E8F0", padding:"48px 44px", maxWidth:480, width:"100%", boxShadow:"0 8px 40px rgba(15,23,42,0.1)", animation:"fadeInUp 0.4s ease both" }}>
+    <div style={{ minHeight:"100vh", background:"#F4F6FA", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <div className="section-card-content" style={{ background:"#fff", borderRadius:20, border:"1px solid #E2E8F0", maxWidth:480, width:"100%", boxShadow:"0 8px 40px rgba(15,23,42,0.1)", animation:"fadeInUp 0.4s ease both" }}>
         {/* Header */}
         <div style={{ textAlign:"center", marginBottom:32 }}>
           <div style={{ width:60, height:60, borderRadius:16, background:"linear-gradient(135deg,#1B4FD8,#3B82F6)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px", boxShadow:"0 8px 24px rgba(27,79,216,0.3)" }}>
