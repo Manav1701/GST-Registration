@@ -57,20 +57,22 @@ function PrincipalPlaceSection({
   const [loadingRange, setLoadingRange] = useState(false);
   const [districtItems, setDistrictItems] = useState([]);
   const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [ghatakItems, setGhatakItems] = useState([]);
+  const [loadingGhataks, setLoadingGhataks] = useState(false);
 
   const fetchJurisdiction = async (endpoint) => {
     try {
-      const targetUrl = `https://reg.gst.gov.in/master/jursd/bypincode/${endpoint}`;
-      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(
-        targetUrl
-      )}`;
-      const res = await fetch(proxyUrl, {
+      const apiBase =
+        import.meta.env.VITE_API_BASE_URL ||
+        "https://gst-fastapi-api-1.onrender.com";
+      const res = await fetch(`${apiBase}/api/proxy/jurisdiction/${endpoint}`, {
         headers: { Accept: "application/json" },
       });
       if (!res.ok) return null;
-      const json = JSON.parse(await res.text());
+      const json = await res.json();
       return json.data?.length > 0 ? json.data : null;
-    } catch {
+    } catch (err) {
+      console.error(`Error fetching jurisdiction (${endpoint}):`, err);
       return null;
     }
   };
@@ -78,7 +80,11 @@ function PrincipalPlaceSection({
   // Clear jurisdiction when PIN becomes invalid
   useEffect(() => {
     if (!data.ppb_pin || data.ppb_pin.length !== 6) {
-      setJurisdictionData({ commissionerates: [], divisions: [], ranges: [] });
+      setJurisdictionData({
+        commissionerates: [],
+        divisions: [],
+        ranges: [],
+      });
     }
   }, [data.ppb_pin]);
 
@@ -186,6 +192,52 @@ function PrincipalPlaceSection({
       load();
     } else {
       setDistrictItems([]);
+    }
+  }, [data.ppb_state]);
+
+  // State → load Sector/Circle/Ward (Ghataks)
+  useEffect(() => {
+    if (data.ppb_state) {
+      const load = async () => {
+        setLoadingGhataks(true);
+
+        try {
+          const gstCode = GST_STATE_CODE[data.ppb_state] || data.ppb_state;
+
+          const apiBase =
+            import.meta.env.VITE_API_BASE_URL ||
+            "https://gst-fastapi-api-1.onrender.com";
+
+          const res = await fetch(`${apiBase}/api/ghataks/${gstCode}`);
+
+          if (res.ok) {
+            const units = await res.json();
+
+            if (Array.isArray(units) && units.length > 0) {
+              setGhatakItems(
+                units.map((u) => ({
+                  value: u.c,
+                  label: u.n,
+                }))
+              );
+            } else {
+              setGhatakItems([]);
+            }
+          } else {
+            console.error("Ghatak API failed");
+            setGhatakItems([]);
+          }
+        } catch (err) {
+          console.error("Failed to fetch ghataks:", err);
+          setGhatakItems([]);
+        } finally {
+          setLoadingGhataks(false);
+        }
+      };
+
+      load();
+    } else {
+      setGhatakItems([]);
     }
   }, [data.ppb_state]);
 
@@ -327,11 +379,17 @@ function PrincipalPlaceSection({
       <SectionCard title="Jurisdiction" icon="⚖️">
         <Grid2>
           <FormSelect
-            label="Sector / Circle / Ward / Charge / Unit"
+            label="Sector / Circle / Ward / Charge / Unit (State)"
             required
             {...sel("sector_circle")}
-            items={GHATAK_ITEMS}
-            hint="e.g. Ghatak 1 (Ahmedabad)"
+            items={ghatakItems} // ✅ ONLY API DATA
+            hint={
+              loadingGhataks
+                ? "⏳ Loading units…"
+                : ghatakItems.length > 0
+                ? `${ghatakItems.length} units found for state`
+                : "⚠️ No units found for selected state"
+            }
           />
           <FormSelect
             label="Center Jurisdiction — Commissionerate"
@@ -345,9 +403,9 @@ function PrincipalPlaceSection({
               loadingComm
                 ? "⏳ Loading…"
                 : jurisdictionData.commissionerates.length > 0
-                ? `${jurisdictionData.commissionerates.length} option(s) loaded`
+                ? `${jurisdictionData.commissionerates.length} commissionerates loaded`
                 : data.ppb_pin?.length === 6
-                ? "No data — check PIN"
+                ? "⚠️ No jurisdiction found for this PIN"
                 : "Enter 6-digit PIN first"
             }
           />
@@ -366,9 +424,9 @@ function PrincipalPlaceSection({
               loadingDiv
                 ? "⏳ Loading…"
                 : jurisdictionData.divisions.length > 0
-                ? `${jurisdictionData.divisions.length} option(s) loaded`
+                ? `${jurisdictionData.divisions.length} divisions found`
                 : data.center_commissionerate
-                ? "No data returned"
+                ? "⚠️ No divisions found"
                 : "Select Commissionerate first"
             }
           />
@@ -385,15 +443,14 @@ function PrincipalPlaceSection({
               loadingRange
                 ? "⏳ Loading…"
                 : jurisdictionData.ranges.length > 0
-                ? `${jurisdictionData.ranges.length} option(s) loaded`
+                ? `${jurisdictionData.ranges.length} ranges found`
                 : data.center_division
-                ? "No data returned"
+                ? "⚠️ No ranges found"
                 : "Select Division first"
             }
           />
         </Grid2>
       </SectionCard>
-
       <SectionCard title="Contact Information" icon="📞">
         <div
           style={{
