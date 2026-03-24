@@ -97,13 +97,12 @@ export async function getGstDistricts(stateIsoCode) {
   // 3. Last Resort Fallback: Use Local Package if Deployed API is slow/down/empty
   const cities = City.getCitiesOfState("IN", stateIsoCode);
   if (cities && cities.length > 0) {
+    // Use 5 chars instead of 3 to avoid collisions like Bhavnagar vs Bhachau (both → GJBHA)
     return cities.map(c => ({ 
-      value: (stateIsoCode + c.name.substring(0, 3)).toUpperCase(), 
+      value: (stateIsoCode + c.name.replace(/\s+/g, "").substring(0, 5)).toUpperCase(), 
       label: c.name 
     }));
   }
-
-  return [];
 }
 
 /**
@@ -350,6 +349,8 @@ export const PIN_DATA = {
   411001: { state: "MH", district: "MHPUN", city: "Pune" },
   110001: { state: "DL", district: "DLNDL", city: "New Delhi" },
   302001: { state: "RJ", district: "RJJAI", city: "Jaipur" },
+  364001: { state: "GJ", district: "GJBHA", city: "Bhavnagar" },
+  364002: { state: "GJ", district: "GJBHA", city: "Bhavnagar" },
 };
 
 // Ghatak (Sector/Circle/Ward) items for GST jurisdiction

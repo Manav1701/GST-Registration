@@ -129,7 +129,7 @@ function buildPayload(f, contact) {
     mobile: f.mobile || "",
     email: f.email || "",
     telephone: f.telephone || "",
-    radiogroup_1: f.radiogroup_1 || null,
+    radiogroup: f.radiogroup || null,
     designation: f.designation || "",
     din: f.din || "",
     toggle_2: !!f.toggle_2,

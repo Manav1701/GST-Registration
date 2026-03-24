@@ -6,9 +6,38 @@
 export const processImage = async (file, maxKb, forceJpeg = false) => {
   if (!file) return null;
 
-  // 1. If it's a PDF, we don't compress (as per requirement), just return.
+  // 1. If it's a PDF, we check size and optionally compress via backend
   if (file.type === "application/pdf") {
-    return file;
+    const targetSizeBytes = maxKb * 1024;
+    // If PDF is already small enough, return as is.
+    if (file.size <= targetSizeBytes) return file;
+
+    // Otherwise, try backend-aided compression
+    try {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || "https://gst-fastapi-api-1.onrender.com";
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`${apiBase}/api/compress-pdf`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Backend compression failed");
+
+      const blob = await res.blob();
+      const pct = (1 - (blob.size / file.size)) * 100;
+      console.log(`
+--- 📄 PDF OPTIMIZATION ---
+Original: ${(file.size/1024/1024).toFixed(2)} MB (${(file.size/1024).toFixed(1)} KB)
+Compressed: ${(blob.size/1024/1024).toFixed(2)} MB (${(blob.size/1024).toFixed(1)} KB)
+REDUCTION: ${pct.toFixed(1)}%
+--------------------------`);
+      return new File([blob], file.name, { type: "application/pdf" });
+    } catch (err) {
+      console.error("PDF Compression failed, using original:", err);
+      return file; // Fallback to original
+    }
   }
 
   // 2. If it's an image, we process it
@@ -19,57 +48,66 @@ export const processImage = async (file, maxKb, forceJpeg = false) => {
       const img = new Image();
       img.src = event.target.result;
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-
-        // Optional: Downscale if image is extremely large (e.g. > 3000px)
-        const MAX_DIM = 2400;
-        if (width > MAX_DIM || height > MAX_DIM) {
-          if (width > height) {
-            height *= MAX_DIM / width;
-            width = MAX_DIM;
-          } else {
-            width *= MAX_DIM / height;
-            height = MAX_DIM;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Determine output format
-        // If forceJpeg is true (for photos), always use image/jpeg
-        const mimeType = forceJpeg ? "image/jpeg" : "image/jpeg"; // Defaulting to jpeg for better compression
-
-        // Initial quality
-        let quality = 0.9;
-        let dataUrl = canvas.toDataURL(mimeType, quality);
-        
-        // Loop to find the right quality to fit under maxKb
-        // (Rough estimation: base64 size is ~1.33x actual file size)
+        // We use a helper function for iterative resizing to ensures it fits EXACTLY under maxKb
         const targetSizeBytes = maxKb * 1024;
+        let quality = 0.9;
+        let scale = 1.0;
         
-        while (dataUrl.length * 0.75 > targetSizeBytes && quality > 0.1) {
-          quality -= 0.1;
-          dataUrl = canvas.toDataURL(mimeType, quality);
+        // Initial max dimension to save performance
+        const MAX_INITIAL_DIM = 2400;
+        if (img.width > MAX_INITIAL_DIM || img.height > MAX_INITIAL_DIM) {
+          scale = Math.min(MAX_INITIAL_DIM / img.width, MAX_INITIAL_DIM / img.height);
         }
 
-        // Convert dataUrl back to File object
-        const arr = dataUrl.split(",");
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
+        const getResizedFile = (q, s) => {
+          const canvas = document.createElement("canvas");
+          const width = Math.floor(img.width * s);
+          const height = Math.floor(img.height * s);
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const mimeType = "image/jpeg"; // Always using JPEG for best size-to-quality ratio
+          const dataUrl = canvas.toDataURL(mimeType, q);
+          
+          // Convert dataUrl (base64) back to a File object to check ACTUAL size
+          const arr = dataUrl.split(",");
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          
+          const ext = ".jpeg";
+          const newFileName = file.name.replace(/\.[^/.]+$/, "") + ext;
+          return new File([u8arr], newFileName, { type: mimeType });
+        };
+
+        let processedFile = getResizedFile(quality, scale);
+
+        // --- Iterative Optimization Loop ---
+        // We reduce quality first (down to 0.3)
+        while (processedFile.size > targetSizeBytes && quality > 0.3) {
+          quality -= 0.15;
+          processedFile = getResizedFile(quality, scale);
         }
-        
-        const newFileName = file.name.replace(/\.[^/.]+$/, "") + (forceJpeg ? ".jpg" : ".jpg");
-        const processedFile = new File([u8arr], newFileName, { type: mimeType });
-        
-        console.log(`[FileProcessor] Original: ${(file.size/1024).toFixed(1)}KB, Processed: ${(processedFile.size/1024).toFixed(1)}KB`);
+
+        // If still too big, we scale down dimensions (width/height) by 20% steps
+        while (processedFile.size > targetSizeBytes && scale > 0.1) {
+          scale *= 0.8;
+          processedFile = getResizedFile(quality, scale);
+        }
+
+        const pct = (1 - (processedFile.size / file.size)) * 100;
+        console.log(`
+--- 🖼️ IMAGE OPTIMIZATION ---
+Original: ${(file.size/1024/1024).toFixed(2)} MB (${(file.size/1024).toFixed(1)} KB)
+Compressed: ${(processedFile.size/1024/1024).toFixed(2)} MB (${(processedFile.size/1024).toFixed(1)} KB)
+REDUCTION: ${pct.toFixed(1)}%
+-----------------------------`);
         resolve(processedFile);
       };
     };

@@ -13,7 +13,8 @@ import {
 // RECURSIVE SEARCH: Dives deep into any object to find a specific key-value pair
 const findKeyDeep = (obj, targetKey) => {
   if (!obj || typeof obj !== "object") return undefined;
-  if (Object.prototype.hasOwnProperty.call(obj, targetKey)) return obj[targetKey];
+  if (Object.prototype.hasOwnProperty.call(obj, targetKey))
+    return obj[targetKey];
   for (const k in obj) {
     if (obj[k] && typeof obj[k] === "object") {
       const result = findKeyDeep(obj[k], targetKey);
@@ -27,7 +28,8 @@ const findKeyDeep = (obj, targetKey) => {
 const getFieldsRecursive = (obj) => {
   if (!obj || typeof obj !== "object") return {};
   // If this level has the core fields, this is the payload
-  if (obj.legal_name || obj._contact_mobile || obj.trade_name || obj.mobile) return obj;
+  if (obj.legal_name || obj._contact_mobile || obj.trade_name || obj.mobile)
+    return obj;
   // If it's a wrapper around form_data, dive in
   if (obj.form_data) return getFieldsRecursive(obj.form_data);
   return obj;
@@ -176,14 +178,14 @@ export function useGSTForm() {
       // 2. MAP: Extract the most meaningful Label for the dropdown from the matched records
       const drafts = filtered.map((s) => {
         const payload = getFieldsRecursive(s);
-        const nameText = 
-          payload.legal_name || 
-          s.legal_name || 
-          payload.trade_name || 
-          s.trade_name || 
-          payload.name_first || 
+        const nameText =
+          payload.legal_name ||
+          s.legal_name ||
+          payload.trade_name ||
+          s.trade_name ||
+          payload.name_first ||
           `Draft #${s.id}`;
-          
+
         return {
           id: s.id,
           legal_name: String(nameText).toUpperCase(),

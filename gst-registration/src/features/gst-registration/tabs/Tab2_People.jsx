@@ -35,6 +35,7 @@ function PromoterForm({
   isRemoveable,
 }) {
   const s = (n) => (suffix ? `${n}${suffix}` : n);
+  const genderKey = suffix === "" ? "radiogroup" : `radiogroup_1${suffix}`;
   const f = (name) => ({
     value: data[s(name)],
     error: touched[s(name)] ? errors[s(name)] : null,
@@ -120,38 +121,71 @@ function PromoterForm({
   useEffect(() => {
     if (suffix !== "") return;
 
-    const mappings = {
-      as_name_first: isAlsoSignatory ? data[s("name_first")] : "",
-      as_name_middle: isAlsoSignatory ? data[s("name_middle")] : "",
-      as_name_last: isAlsoSignatory ? data[s("name_last")] : "",
-      as_father_first: isAlsoSignatory ? data[s("father_first")] : "",
-      as_father_middle: isAlsoSignatory ? data[s("father_middle")] : "",
-      as_father_last: isAlsoSignatory ? data[s("father_last")] : "",
-      as_dob: isAlsoSignatory ? data[s("dob")] : "",
-      as_mobile: isAlsoSignatory ? data[s("mobile")] : "",
-      as_email: isAlsoSignatory ? data[s("email")] : "",
-      as_telephone: isAlsoSignatory ? data[s("telephone")] : "",
-      radiogroup_1: isAlsoSignatory ? data[s("radiogroup_1")] : null,
-      as_designation: isAlsoSignatory ? data[s("designation")] : "",
-      as_din: isAlsoSignatory ? data[s("din")] : "",
-      as_pan: isAlsoSignatory ? data[s("pan_proprietor")] : "",
-      toggle_3: isAlsoSignatory ? !!data[s("toggle_2")] : false,
-      as_passport: isAlsoSignatory ? data[s("passport")] : null,
-      as_aadhaar: isAlsoSignatory ? data[s("aadhaar")] : null,
-      as_country: isAlsoSignatory ? data[s("country")] : "IN",
-      as_pin: isAlsoSignatory ? data[s("pin_code")] : "",
-      as_state: isAlsoSignatory ? data[s("state_res")] : "",
-      as_district: isAlsoSignatory ? data[s("district_res")] : "",
-      as_city: isAlsoSignatory ? data[s("city_res")] : "",
-      as_locality: isAlsoSignatory ? data[s("locality")] : "",
-      as_road: isAlsoSignatory ? data[s("road_street_res")] : "",
-      as_premises: isAlsoSignatory ? data[s("premises_name")] : "",
-      as_bno: isAlsoSignatory ? data[s("building_no_res")] : "",
-      as_floor: isAlsoSignatory ? data[s("floor_no_res")] : "",
-      as_landmark: isAlsoSignatory ? data[s("landmark_res")] : "",
-      as_photo: isAlsoSignatory ? data[s("photo")] : null,
-      is_primary: isAlsoSignatory ? true : false,
-    };
+    const mappings = {};
+    if (isAlsoSignatory) {
+      mappings.as_name_first = data[s("name_first")];
+      mappings.as_name_middle = data[s("name_middle")];
+      mappings.as_name_last = data[s("name_last")];
+      mappings.as_father_first = data[s("father_first")];
+      mappings.as_father_middle = data[s("father_middle")];
+      mappings.as_father_last = data[s("father_last")];
+      mappings.as_dob = data[s("dob")];
+      mappings.as_mobile = data[s("mobile")];
+      mappings.as_email = data[s("email")];
+      mappings.as_telephone = data[s("telephone")];
+      mappings.radiogroup_1 = data.radiogroup; 
+      mappings.as_designation = data[s("designation")];
+      mappings.as_din = data[s("din")];
+      mappings.as_pan = data[s("pan_proprietor")];
+      mappings.toggle_3 = !!data[s("toggle_2")];
+      mappings.as_passport = data[s("passport")];
+      mappings.as_aadhaar = data[s("aadhaar")];
+      mappings.as_country = data[s("country")];
+      mappings.as_pin = data[s("pin_code")];
+      mappings.as_state = data[s("state_res")];
+      mappings.as_district = data[s("district_res")];
+      mappings.as_city = data[s("city_res")];
+      mappings.as_locality = data[s("locality")];
+      mappings.as_road = data[s("road_street_res")];
+      mappings.as_premises = data[s("premises_name")];
+      mappings.as_bno = data[s("building_no_res")];
+      mappings.as_floor = data[s("floor_no_res")];
+      mappings.as_landmark = data[s("landmark_res")];
+      mappings.as_photo = data[s("photo")];
+      mappings.is_primary = true;
+    } else {
+      // Clear data when toggle is NO
+      mappings.as_name_first = "";
+      mappings.as_name_middle = "";
+      mappings.as_name_last = "";
+      mappings.as_father_first = "";
+      mappings.as_father_middle = "";
+      mappings.as_father_last = "";
+      mappings.as_dob = "";
+      mappings.as_mobile = "";
+      mappings.as_email = "";
+      mappings.as_telephone = "";
+      mappings.radiogroup_1 = null;
+      mappings.as_designation = "";
+      mappings.as_din = "";
+      mappings.as_pan = "";
+      mappings.toggle_3 = false;
+      mappings.as_passport = null;
+      mappings.as_aadhaar = null;
+      mappings.as_country = "IN";
+      mappings.as_pin = "";
+      mappings.as_state = "";
+      mappings.as_district = "";
+      mappings.as_city = "";
+      mappings.as_locality = "";
+      mappings.as_road = "";
+      mappings.as_premises = "";
+      mappings.as_bno = "";
+      mappings.as_floor = "";
+      mappings.as_landmark = "";
+      mappings.as_photo = null;
+      mappings.is_primary = false;
+    }
 
     Object.entries(mappings).forEach(([targetKey, newValue]) => {
       if (data[targetKey] !== newValue) update(targetKey, newValue);
@@ -169,7 +203,7 @@ function PromoterForm({
     data[s("mobile")],
     data[s("email")],
     data[s("telephone")],
-    data[s("radiogroup_1")],
+    data[genderKey],
     data[s("designation")],
     data[s("din")],
     data[s("pan_proprietor")],
@@ -353,8 +387,8 @@ function PromoterForm({
           <div>
             <FormRadioGroup
               label="Gender"
-              value={data[s("radiogroup_1")]}
-              onChange={(v) => update(s("radiogroup_1"), v)}
+              value={data[genderKey]}
+              onChange={(v) => update(genderKey, v)}
               items={[
                 { value: "Male", label: "Male" },
                 { value: "Female", label: "Female" },
