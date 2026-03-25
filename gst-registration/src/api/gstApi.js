@@ -101,8 +101,8 @@ function buildPayload(f, contact) {
     "Constitution of Business": f["Constitution of Business"] || "",
     trade_name: f.trade_name || "",
     state: getStateName(f.state) || "",
-    District: f.District || f.district_fixed || "", // field key the form uses
-    district_fixed: f.district_fixed || f.District || "",
+    District: (f.District || f.district_fixed || "").substring(0, 5).toUpperCase(),
+    district_fixed: (f.district_fixed || f.District || "").substring(0, 5).toUpperCase(),
     toggle: !!f.toggle,
     toggle_1: !!f.toggle_1,
     radioBlocks: f.radioBlocks ?? null,
@@ -139,7 +139,7 @@ function buildPayload(f, contact) {
     country: getCountryName(f.country),
     pin_code: f.pin_code || "",
     state_res: getStateName(f.state_res),
-    district_res: f.district_res || "",
+    district_res: (f.district_res || "").substring(0, 5).toUpperCase(),
     city_res: f.city_res || "",
     locality: f.locality || "",
     road_street_res: f.road_street_res || "",
@@ -172,7 +172,7 @@ function buildPayload(f, contact) {
     as_country: getCountryName(f.as_country),
     as_pin: f.as_pin || "",
     as_state: getStateName(f.as_state),
-    as_district: f.as_district || null,
+    as_district: (f.as_district || "").substring(0, 5).toUpperCase(),
     as_city: f.as_city || null,
     as_locality: f.as_locality || null,
     as_road: f.as_road || null,
@@ -203,7 +203,7 @@ function buildPayload(f, contact) {
     toggle_5: !!f.toggle_5,
     ppb_pin: f.ppb_pin || "",
     ppb_state: getStateName(f.ppb_state) || "",
-    ppb_district: f.ppb_district || "",
+    ppb_district: (f.ppb_district || "").substring(0, 5).toUpperCase(),
     ppb_city: f.ppb_city || "",
     ppb_locality: f.ppb_locality || "",
     ppb_road: f.ppb_road || "",
@@ -249,7 +249,7 @@ function buildPayload(f, contact) {
     apb_count: f.apb_count || "",
     apb_pin: f.apb_pin || "",
     apb_state: f.apb_state || "",
-    apb_district: f.apb_district || null,
+    apb_district: (f.apb_district || "").substring(0, 5).toUpperCase(),
     apb_city: f.apb_city || null,
     apb_locality: f.apb_locality || "",
     apb_road: f.apb_road || "",
@@ -355,7 +355,8 @@ function buildPayload(f, contact) {
     ];
     stringFields.forEach((base) => {
       const key = `${base}${sfx}`;
-      payload[key] = f[key] || "";
+      const rawVal = f[key] || "";
+      payload[key] = base.includes("district") ? rawVal.substring(0, 5).toUpperCase() : rawVal;
     });
 
     // Null-default fields

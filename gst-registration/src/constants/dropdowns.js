@@ -113,7 +113,8 @@ export function normalizeDistrict(currentVal, items) {
   if (!currentVal || !items || items.length === 0) return null;
   const found = items.find(i => 
     i.label?.toLowerCase().trim() === currentVal.toLowerCase().trim() ||
-    i.value === currentVal
+    i.value === currentVal ||
+    (currentVal.length === 5 && i.value.substring(0, 5) === currentVal) // Match truncated backend codes
   );
   return (found && found.value !== currentVal) ? found.value : null;
 }

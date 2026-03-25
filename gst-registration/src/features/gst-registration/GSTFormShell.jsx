@@ -419,11 +419,19 @@ export default function GSTFormShell() {
             <div style={{ padding: "12px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
                 {getUploadedDocs().map((doc) => {
-                  const targetTab = doc.id.includes("pan") ? 0 : 
-                                    (doc.id.includes("ppb") ? 2 : 1);
                   return (
                     <div
                       key={doc.id}
+                      style={{
+                        padding: "10px",
+                        borderRadius: 10,
+                        border: "1.5px solid",
+                        borderColor: doc.value ? (selectedDoc?.id === doc.id ? "#1B4FD8" : "#E2E8F0") : "#F1F5F9",
+                        background: doc.value ? "#fff" : "#F8FAFC",
+                        transition: "all 0.2s",
+                        position: "relative",
+                        cursor: "pointer",
+                      }}
                       onClick={() => {
                         if (doc.value) {
                           setSelectedDoc({ ...doc, src: doc.value });
@@ -433,16 +441,6 @@ export default function GSTFormShell() {
                         } else {
                           handleSidebarUploadClick(doc.field);
                         }
-                      }}
-                      style={{
-                        padding: "10px",
-                        borderRadius: 10,
-                        border: "1.5px solid",
-                        borderColor: doc.value ? (selectedDoc?.id === doc.id ? "#1B4FD8" : "#E2E8F0") : "#F1F5F9",
-                        background: doc.value ? "#fff" : "#F8FAFC",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        position: "relative"
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -457,18 +455,47 @@ export default function GSTFormShell() {
                             <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#CBD5E1" }} />
                           )}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 11.5, fontWeight: 700, color: doc.value ? "#1E293B" : "#94A3B8" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 11.5, fontWeight: 700, color: doc.value ? "#1E293B" : "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {doc.label}
                           </div>
                           <div style={{ fontSize: 9.5, color: doc.isOfficial ? "#10B981" : (doc.isReference ? "#1B4FD8" : "#64748B"), fontWeight: 700 }}>
                             {doc.isOfficial ? "Official Copy" : (doc.isReference ? "Reference Only" : "Click to Upload")}
                           </div>
                         </div>
+                        
                         {doc.value ? (
-                          <div style={{ animation: "pulse 2s infinite" }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (doc.isOfficial) {
+                                update(doc.field, null);
+                              } else {
+                                setSidebarRefDocs(prev => {
+                                  const n = { ...prev };
+                                  delete n[doc.field];
+                                  return n;
+                                });
+                              }
+                              if (selectedDoc?.id === doc.id) setSelectedDoc(null);
+                            }}
+                            title="Remove Document"
+                            style={{
+                              background: "#FEE2E2",
+                              border: "none",
+                              borderRadius: "50%",
+                              width: 22,
+                              height: 22,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#DC2626",
+                              cursor: "pointer",
+                              zIndex: 5
+                            }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                          </button>
                         ) : (
                           <div style={{ width: 18, height: 18, borderRadius: "50%", border: "1px dashed #CBD5E1", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <span style={{ fontSize: 10, color: "#94A3B8" }}>+</span>

@@ -1,5 +1,5 @@
 // ─── All reusable UI primitive components ────────────────────────────────────
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { processImage } from "../../utils/fileProcessor.js";
 
 export const FieldWrapper = ({ label, required, error, hint, children }) => (
@@ -349,115 +349,153 @@ export const FileInput = ({
   maxKb = 1024,
   forceJpeg = false,
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [valError, setValError] = useState(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    setValError(null);
+
     try {
-      setIsProcessing(true);
-      const processedFile = await processImage(file, maxKb, forceJpeg);
-      // For now, we still just save the name to maintain compatibility with existing logic,
-      // but in a real app, you'd save the processedFile object or upload it.
-      onChange(processedFile.name);
+      const validFile = await processImage(file, maxKb, forceJpeg);
+      onChange(validFile.name);
     } catch (err) {
-      console.error("File processing failed:", err);
-    } finally {
-      setIsProcessing(false);
+      if (err.message === "FILE_TOO_LARGE") {
+        setValError(`File is too large (${(file.size / 1024).toFixed(1)} KB). Max limit is ${maxKb} KB.`);
+      } else if (err.message === "ONLY_JPEG") {
+        setValError("Invalid format. Please upload a .jpeg image.");
+      } else {
+        setValError("File upload failed. Please try again.");
+      }
     }
   };
 
+  const getCompressUrl = () => {
+    // Using Optimizilla (ImageCompressor) for images - excellent manual quality control
+    if (forceJpeg || (value && value.toLowerCase().match(/\.(jpe?g|png|gif|webp)$/))) {
+      return "https://imagecompressor.com/";
+    }
+    // Using PDFCompressor - very high limits and simple manual usage
+    return "https://pdfcompressor.com/";
+  };
+
   return (
-    <FieldWrapper label={label} required={required} error={error}>
+    <FieldWrapper label={label} required={required} error={error || valError}>
       <div
         style={{
           border: `2px dashed ${
-            error ? "#FCA5A5" : isProcessing ? "#1B4FD8" : "#CBD5E1"
+            error || valError ? "#FCA5A5" : isHovered ? "#1B4FD8" : "#CBD5E1"
           }`,
           borderRadius: 8,
           padding: "18px 14px",
           textAlign: "center",
           background: "#FAFBFD",
-          cursor: isProcessing ? "wait" : "pointer",
           transition: "all 0.15s ease",
           position: "relative",
+          cursor: "pointer",
         }}
-        onMouseEnter={(e) =>
-          !isProcessing && (e.currentTarget.style.borderColor = "#1B4FD8")
-        }
-        onMouseLeave={(e) =>
-          !isProcessing &&
-          (e.currentTarget.style.borderColor = error ? "#FCA5A5" : "#CBD5E1")
-        }
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <input
+          ref={fileInputRef}
           type="file"
-          disabled={isProcessing}
           style={{
             position: "absolute",
             inset: 0,
             opacity: 0,
-            cursor: isProcessing ? "wait" : "pointer",
+            cursor: "pointer",
+            zIndex: 1, // Lower layer
           }}
           onChange={handleFileChange}
           accept={forceJpeg ? "image/jpeg" : ".pdf,image/jpeg,image/png"}
         />
 
-        {isProcessing ? (
-          <div style={{ padding: "10px 0" }}>
-            <div
-              className="spinner"
-              style={{
-                width: 20,
-                height: 20,
-                border: "2px solid #E2E8F0",
-                borderTopColor: "#1B4FD8",
-                borderRadius: "50%",
-                animation: "spin 0.8s linear infinite",
-                margin: "0 auto 10px",
-              }}
-            />
-            <p style={{ fontSize: 12, color: "#1B4FD8", fontWeight: 700 }}>
-              Optimizing File...
-            </p>
-          </div>
-        ) : (
-          <>
-            <svg
-              width="26"
-              height="26"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#94A3B8"
-              strokeWidth="1.5"
-              style={{ margin: "0 auto 7px" }}
-            >
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-            </svg>
-            {value ? (
-              <p style={{ fontSize: 12.5, color: "#1B4FD8", fontWeight: 600 }}>
+        <div style={{ pointerEvents: "none", position: "relative", zIndex: 10 }}>
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={error || valError ? "#EF4444" : "#94A3B8"}
+            strokeWidth="1.5"
+            style={{ margin: "0 auto 7px" }}
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+          </svg>
+          {value && !valError ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <p style={{ fontSize: 12.5, color: "#1B4FD8", fontWeight: 700 }}>
                 ✅ {value}
               </p>
-            ) : (
-              <>
-                <p
-                  style={{ fontSize: 12.5, color: "#64748B", fontWeight: 600 }}
-                >
-                  Click to upload or drag & drop
-                </p>
-                <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>
-                  {forceJpeg ? "JPEG Only" : "PDF / JPEG"} — max{" "}
-                  {maxKb >= 1024 ? maxKb / 1024 + "MB" : maxKb + "KB"}
-                </p>
-              </>
-            )}
-          </>
-        )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                  onChange(null);
+                }}
+                style={{
+                  pointerEvents: "auto", // Enable clicks for this button
+                  background: "#FEE2E2",
+                  border: "1px solid #FECACA",
+                  color: "#DC2626",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  cursor: "pointer"
+                }}
+              >
+                ✕ REMOVE
+              </button>
+            </div>
+          ) : (
+            <p style={{ fontSize: 12.5, color: "#64748B", fontWeight: 600 }}>
+              Click to upload {forceJpeg ? "Photo" : "Document"}
+            </p>
+          )}
+          <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>
+            {forceJpeg ? "JPEG Only" : "PDF / JPEG"} — Max {maxKb}KB
+          </p>
+        </div>
       </div>
+
+      {valError && (
+        <div style={{ marginTop: 10 }}>
+          <a
+            href={getCompressUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
+              background: "#1B4FD8",
+              color: "#fff",
+              borderRadius: 6,
+              fontSize: 11.5,
+              fontWeight: 700,
+              textDecoration: "none",
+              boxShadow: "0 2px 4px rgba(27,79,216,0.2)",
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+            </svg>
+            Manual Format & Resize Tool
+          </a>
+        </div>
+      )}
     </FieldWrapper>
   );
 };
+
 
 export const SectionCard = ({ title, icon, children }) => (
   <div
