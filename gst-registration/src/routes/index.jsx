@@ -5,6 +5,7 @@ import {
 } from "react-router-dom";
 import ContactPage from "../pages/ContactPage.jsx";
 import OTPPage from "../pages/OTPPage.jsx";
+import SelectionPage from "../pages/SelectionPage.jsx";
 import DocumentUploadPage from "../pages/DocumentUploadPage.jsx";
 import ReviewPage from "../pages/ReviewPage.jsx";
 import SubmittedPage from "../pages/SubmittedPage.jsx";
@@ -37,6 +38,16 @@ const router = createBrowserRouter([
     element: (
       <RequireContact>
         <OTPPage />
+      </RequireContact>
+    ),
+  },
+  {
+    path: "/selection",
+    element: (
+      <RequireContact>
+        <RequireOTP>
+          <SelectionPage />
+        </RequireOTP>
       </RequireContact>
     ),
   },

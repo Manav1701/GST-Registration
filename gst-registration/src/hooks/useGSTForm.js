@@ -304,11 +304,18 @@ export function useGSTForm() {
 
         // Clean merge: INITIAL_STATE as base, then DB values on top
         // No ...prev — avoids old/stale state polluting the loaded draft
-        setFormData({
+        const nextData = {
           ...INITIAL_STATE,
           ...processed,
-        });
+        };
+        setFormData(nextData);
         setCurrentSubmissionId(id);
+        
+        // EXPLICIT PERSIST: Guarantee localStorage is updated before navigation
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData));
+        localStorage.setItem("gst_submission_id", String(id));
+        localStorage.setItem("gst_submission_name", String(nextData.legal_name || ""));
+        
         setActiveTab(0);
         setErrors({});
         setTouched({});
@@ -451,6 +458,7 @@ export function useGSTForm() {
   const clearDraft = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("gst_submission_id");
+    localStorage.removeItem("gst_submission_name");
     setFormData(INITIAL_STATE);
     setCurrentSubmissionId(null);
     setActiveTab(0);

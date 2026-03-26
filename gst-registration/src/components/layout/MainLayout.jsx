@@ -13,7 +13,7 @@ export default function MainLayout({ children, showReviewHeader }) {
   return (
     <div style={{ minHeight:"100vh", background:"#F4F6FA", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
       {/* Header */}
-      <header style={{ background:"#fff", borderBottom:"1px solid #E2E8F0", boxShadow:"0 1px 5px rgba(15,23,42,0.06)", position:"sticky", top:0, zIndex:50 }}>
+      <header style={{ background:"#fff", borderBottom:"1px solid #E2E8F0", boxShadow:"0 1px 5px rgba(15,23,42,0.06)", position:"sticky", top:0, zIndex:1000 }}>
         <div className="header-content" style={{ maxWidth:1400, margin:"0 auto", padding:"0 24px", minHeight:62, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
           {/* Logo */}
           <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0" }}>
@@ -35,6 +35,61 @@ export default function MainLayout({ children, showReviewHeader }) {
 
           {/* Right side */}
           <div style={{ display:"flex", alignItems:"center", gap:14, padding:"8px 0", flexWrap:"wrap" }}>
+            {/* Record ID / Mode Indicator */}
+            {(() => {
+              const regId = localStorage.getItem("gst_submission_id");
+              const regName = localStorage.getItem("gst_submission_name");
+              if (!regId) return (
+                <div style={{ display:"flex", alignItems:"center", gap:6, background:"#F8FAFC", border:"1px solid #E2E8F0", borderRadius:8, padding:"6px 12px" }}>
+                  <span style={{ fontSize:15 }}>🆕</span>
+                  <span style={{ fontSize:11.5, fontWeight:700, color:"#64748B" }}>NEW RECORD</span>
+                </div>
+              );
+              return (
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                   <div style={{ 
+                     display:"flex", alignItems:"center", gap:7, background:"#FFFBEB", border:"1px solid #FCD34D", borderRadius:8, padding:"6px 12px",
+                     maxWidth: 240 // Prevents pushing buttons out of screen
+                   }}>
+                    <span style={{ fontSize:15 }}>✏️</span>
+                    <span style={{ 
+                      fontSize:11.5, fontWeight:700, color:"#92400E", 
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" 
+                    }}>
+                      {regName ? `${regName.toUpperCase()} (#${regId})` : `EDITING: #${regId}`}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={()=>navigate("/selection")}
+                    style={{ 
+                      background: "#fff", 
+                      border: "1px solid #C7D9FF", 
+                      color: "#1B4FD8", 
+                      fontSize: 10, 
+                      fontWeight: 800, 
+                      cursor: "pointer", 
+                      padding: "4px 10px", 
+                      borderRadius: 6,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      transition: "all 0.15s ease",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#EEF4FF";
+                      e.currentTarget.style.borderColor = "#1B4FD8";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#fff";
+                      e.currentTarget.style.borderColor = "#C7D9FF";
+                    }}
+                  >
+                    Change
+                  </button>
+                </div>
+              );
+            })()}
+
             {contactInfo.mobile && (
               <div className="hide-mobile" style={{ display:"flex", alignItems:"center", gap:8, background:"#EEF4FF", border:"1px solid #C7D9FF", borderRadius:8, padding:"6px 12px" }}>
                 <div style={{ width:6, height:6, borderRadius:"50%", background:"#10B981" }}/>

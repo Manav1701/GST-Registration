@@ -85,7 +85,7 @@ export default function OTPPage() {
           </div>
         ))}
 
-        <button onClick={()=>{ if(!canProceed)return; localStorage.setItem("gst_otp_verified","1"); navigate("/documents"); }} className="nav-btn"
+        <button onClick={()=>{ if(!canProceed)return; localStorage.setItem("gst_otp_verified","1"); navigate("/selection"); }} className="nav-btn"
           style={{ width:"100%", padding:13, fontSize:15, fontWeight:800, background:canProceed?"linear-gradient(135deg,#059669,#10B981)":"#F1F5F9", color:canProceed?"#fff":"#94A3B8", border:`1.5px solid ${canProceed?"transparent":"#E2E8F0"}`, borderRadius:12, cursor:canProceed?"pointer":"not-allowed", boxShadow:canProceed?"0 4px 14px rgba(5,150,105,0.3)":"none", display:"flex", alignItems:"center", justifyContent:"center", gap:9 }}>
           {canProceed ? <>Proceed to Document Upload <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg></> : "Verify at least one OTP to continue"}
         </button>

@@ -1,25 +1,33 @@
 /* ─── Responsive Utilities & Base Styles ─── */
 
 :root {
-  --primary: #1B4FD8;
-  --primary-gradient: linear-gradient(135deg, #1B4FD8, #3B82F6);
-  --success: #10B981;
-  --success-gradient: linear-gradient(135deg, #059669, #10B981);
-  --bg-main: #F4F6FA;
-  --text-main: #1A2235;
-  --text-muted: #64748B;
-  --border-light: #E2E8F0;
+  --primary: #1b4fd8;
+  --primary-gradient: linear-gradient(135deg, #1b4fd8, #3b82f6);
+  --success: #10b981;
+  --success-gradient: linear-gradient(135deg, #059669, #10b981);
+  --bg-main: #f4f6fa;
+  --text-main: #1a2235;
+  --text-muted: #64748b;
+  --border-light: #e2e8f0;
   --white: #ffffff;
 }
 
 /* Animations */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .field-animate {
@@ -55,11 +63,11 @@
     grid-template-columns: 1fr;
     gap: 12px 0 !important;
   }
-  
+
   .hide-mobile {
     display: none !important;
   }
-  
+
   .show-mobile {
     display: block !important;
   }
@@ -77,7 +85,7 @@
   display: flex;
   gap: 22px;
   align-items: flex-start;
-  background: #FAFBFE;
+  background: #fafbfe;
   min-height: calc(100vh - 65px);
 }
 
@@ -92,24 +100,24 @@
 /* Sidebar Responsive Styles */
 .sidebar-sticky {
   position: sticky;
-  top: 82px;
+  top: 22px;
   transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-  z-index: 100;
+  z-index: 90;
 }
 
 @media (max-width: 992px) {
   .main-container {
     flex-direction: column !important;
   }
-  
+
   .sidebar-sticky {
     position: relative;
     top: 0;
     width: 100% !important;
     border-right: none !important;
-    border-bottom: 1px solid #E2E8F0;
+    border-bottom: 1px solid #e2e8f0;
   }
-  
+
   .sidebar-content {
     height: auto !important;
     max-height: 400px;
@@ -122,7 +130,7 @@
   .header-content {
     padding: 0 12px !important;
   }
-  
+
   .logo-text {
     display: none;
   }
