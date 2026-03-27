@@ -113,15 +113,18 @@ function PrincipalPlaceSection({
             const commissionerates = await fetchJurisdiction(
               `commisionerate/${gstCode}/${data.ppb_pin}`
             );
-            setJurisdictionData({
+            setJurisdictionData(prev => ({
+              ...prev,
               commissionerates: commissionerates || [],
-              divisions: [],
-              ranges: [],
-            });
-            update("center_commissionerate", "");
-            update("sector_circle", "");
-            update("center_division", "");
-            update("center_range", "");
+              // Keep existing lists if we are already auto-filling
+            }));
+            // SMART CLEAR: Only clear if the existing value is NOT valid for this PIN
+            const commValid = commissionerates?.some(c => c.c === data.center_commissionerate);
+            if (!commValid) {
+              update("center_commissionerate", "");
+              update("center_division", "");
+              update("center_range", "");
+            }
           }
         }
         setLoadingComm(false);
@@ -147,10 +150,13 @@ function PrincipalPlaceSection({
         setJurisdictionData((prev) => ({
           ...prev,
           divisions: divisions || [],
-          ranges: [],
         }));
-        update("center_division", "");
-        update("center_range", "");
+        // SMART CLEAR: Only clear if existing division is invalid
+        const divValid = divisions?.some(d => d.c === data.center_division);
+        if (!divValid) {
+          update("center_division", "");
+          update("center_range", "");
+        }
         setLoadingDiv(false);
       };
       load();
@@ -168,7 +174,11 @@ function PrincipalPlaceSection({
           `range/${gstCode}/${data.center_division}/${data.ppb_pin}`
         );
         setJurisdictionData((prev) => ({ ...prev, ranges: ranges || [] }));
-        update("center_range", "");
+        // SMART CLEAR: Only clear if existing range is invalid for this division/pin
+        const rangeValid = ranges?.some(r => r.c === data.center_range);
+        if (!rangeValid) {
+          update("center_range", "");
+        }
         setLoadingRange(false);
       };
       load();

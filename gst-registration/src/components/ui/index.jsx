@@ -497,43 +497,80 @@ export const FileInput = ({
 };
 
 
-export const SectionCard = ({ title, icon, children }) => (
-  <div
-    style={{
-      background: "#fff",
-      borderRadius: 12,
-      border: "1px solid #E2E8F0",
-      marginBottom: 20,
-      overflow: "hidden",
-      boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-    }}
-  >
+export const SectionCard = ({ title, icon, children, initialCollapsed = false }) => {
+  const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
+
+  return (
     <div
       style={{
-        padding: "13px 22px",
-        borderBottom: "1px solid #F1F5F9",
-        background: "linear-gradient(135deg,#EEF4FF 0%,#F8FAFC 100%)",
-        display: "flex",
-        alignItems: "center",
-        gap: 9,
+        background: "#fff",
+        borderRadius: 12,
+        border: "1px solid #E2E8F0",
+        marginBottom: 20,
+        overflow: "hidden",
+        boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+        transition: "all 0.3s ease",
       }}
     >
-      {icon && <span style={{ fontSize: 16 }}>{icon}</span>}
-      <h3
+      <div
+        onClick={() => setIsCollapsed(!isCollapsed)}
         style={{
-          fontSize: 12,
-          fontWeight: 800,
-          color: "#1B4FD8",
-          letterSpacing: "0.07em",
-          textTransform: "uppercase",
+          padding: "13px 22px",
+          borderBottom: isCollapsed ? "none" : "1px solid #F1F5F9",
+          background: "linear-gradient(135deg,#EEF4FF 0%,#F8FAFC 100%)",
+          display: "flex",
+          alignItems: "center",
+          gap: 9,
+          cursor: "pointer",
+          userSelect: "none",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(0.98)")}
+        onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
+      >
+        {icon && <span style={{ fontSize: 16 }}>{icon}</span>}
+        <h3
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            color: "#1B4FD8",
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
+            flex: 1,
+          }}
+        >
+          {title}
+        </h3>
+        {/* Toggle Arrow */}
+        <div
+          style={{
+            transform: isCollapsed ? "rotate(0deg)" : "rotate(180deg)",
+            transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+            color: "#94A3B8",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </div>
+      <div 
+        style={{ 
+          maxHeight: isCollapsed ? "0px" : "1500px",
+          opacity: isCollapsed ? 0 : 1,
+          overflow: "hidden",
+          transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease",
+          pointerEvents: isCollapsed ? "none" : "auto"
         }}
       >
-        {title}
-      </h3>
+        <div className="section-card-content" style={{ padding: 22 }}>
+          {children}
+        </div>
+      </div>
     </div>
-    <div className="section-card-content">{children}</div>
-  </div>
-);
+  );
+};
 
 export const InfoAlert = ({ children, type = "info" }) => {
   const colors = {

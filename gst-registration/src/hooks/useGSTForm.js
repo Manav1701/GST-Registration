@@ -412,8 +412,8 @@ export function useGSTForm() {
   );
 
   const saveDraftToDB = useCallback(async (tabIdx) => {
-    // Determine mobile number for identification
-    const mobile = formData.mobile || formData._contact_mobile || contactInfo.mobile;
+    // Determine mobile number for identification — Prioritize OTP session number over Promoter's number
+    const mobile = contactInfo.mobile || formData._contact_mobile || formData.mobile;
     if (!mobile) return null;
 
     try {
