@@ -54,12 +54,18 @@ export default function SelectionPage() {
   };
 
   const handleSelectRecord = async (record) => {
-    if (record.type === 'draft') {
-        await loadDraft(record.id);
-    } else {
-        await loadSubmission(record.id);
+    console.log("[SelectionPage] Selecting record:", record);
+    try {
+      if (record.type === 'draft') {
+          await loadDraft(record.id);
+      } else {
+          await loadSubmission(record.id);
+      }
+      console.log("[SelectionPage] Record loaded successfully, navigating...");
+      navigate("/documents");
+    } catch (err) {
+      console.error("[SelectionPage] Error picking record:", err);
     }
-    navigate("/documents");
   };
 
   return (
@@ -218,7 +224,7 @@ export default function SelectionPage() {
             </p>
           </div>
 
-          <div style={{ position: "relative", width: "100%", zIndex: showDropdown ? 50 : 1 }}>
+          <div style={{ position: "relative", width: "100%", zIndex: showDropdown ? 100 : 1 }}>
             <div
               style={{
                 position: "absolute",
@@ -278,7 +284,10 @@ export default function SelectionPage() {
                   combinedRecords.map((record) => (
                     <div
                       key={`${record.type}-${record.id}`}
-                      onClick={() => handleSelectRecord(record)}
+                      onClick={() => {
+                        console.log("[SelectionPage] Selected record:", record);
+                        handleSelectRecord(record);
+                      }}
                       style={{
                         padding: "12px 16px",
                         borderRadius: 8,

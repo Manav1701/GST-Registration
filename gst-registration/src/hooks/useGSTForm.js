@@ -210,25 +210,35 @@ export function useGSTForm() {
     try {
       setIsSubmitting(true);
       const draft = await getDraftById(id);
-      if (draft && draft.form_data) {
-          setFormData({ ...INITIAL_STATE, ...draft.form_data });
+      console.log("[useGSTForm] Draft response for ID " + id + ":", draft);
+
+      if (draft) {
+          // Use smart extractor to handle nested data
+          const raw = getFieldsRecursive(draft);
+          
+          // Clean merge: INITIAL_STATE + extracted fields
+          const nextData = { ...INITIAL_STATE, ...raw };
+          
+          // Strip API wrapper keys from state
+          ["form_key", "form_data", "id", "mobile_number", "last_updated", "status"].forEach(k => delete nextData[k]);
+          
+          setFormData(nextData);
           setCurrentDraftId(id);
+          setCurrentSubmissionId(null);
           setActiveTab(draft.current_page || 0);
           
-          // Clear current submission ID if we are switching to a draft
-          setCurrentSubmissionId(null);
-          localStorage.removeItem("gst_submission_id");
-          
+          console.log("[useGSTForm] State updated from Draft ID:", id);
+
           setErrors({});
           setTouched({});
           setTabStatus({});
       }
     } catch (err) {
-      console.error("Failed to load draft:", err);
+      console.error("[useGSTForm] Failed to load draft:", err);
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [INITIAL_STATE, getFieldsRecursive]);
 
   // New function to load a SUBMISSION for editing
   const loadSubmission = useCallback(async (id) => {

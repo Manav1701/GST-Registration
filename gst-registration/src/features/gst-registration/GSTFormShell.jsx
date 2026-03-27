@@ -1011,15 +1011,15 @@ export default function GSTFormShell() {
         </div>
       </main>
 
-      {/* Right Preview Workspace (Dynamic 40-50%) */}
+      {/* Right Preview Workspace (Sticky 35%) */}
       {selectedDoc && (
         <aside
           style={{
-            width: isSidebarCollapsed ? "50%" : "40%",
+            width: isSidebarCollapsed ? "35%" : "32%", // Optimized for 35/65 ratio
             flexShrink: 0,
             position: "sticky",
-            top: 82,
-            height: "calc(100vh - 110px)",
+            top: 75, // Lowered top to align with reduced margins
+            height: "calc(100vh - 100px)",
             background: "#fff",
             borderRadius: 14,
             border: "1px solid #E2E8F0",

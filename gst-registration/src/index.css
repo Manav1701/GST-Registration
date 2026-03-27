@@ -92,11 +92,11 @@
 
 /* Layout Classes */
 .main-container {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 22px 24px;
+  padding: 22px 12px; /* Reduced horizontal padding from 24px to 12px */
   display: flex;
-  gap: 22px;
+  gap: 16px; /* Reduced gap from 22px to 16px */
   align-items: flex-start;
   background: #fafbfe;
   min-height: calc(100vh - 65px);
