@@ -43,6 +43,14 @@ export const getSubmission = async (id) => {
   }
 };
 
+export const getSubmissionsByMobile = async (mobile) => {
+  const apiBase =
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://gst-fastapi-api-1.onrender.com";
+  const url = `${apiBase}${ENDPOINTS.SUBMISSIONS}/search/mobile/${mobile}`;
+  return await smartFetch(url, { useProxy: false, defaultData: [] });
+};
+
 export const submitGSTForm = async (formData, contactInfo) => {
   const apiBase =
     import.meta.env.VITE_API_BASE_URL ||
@@ -86,6 +94,51 @@ export const updateGSTForm = async (id, formData, contactInfo) => {
 
   const result = await response.json();
   return result;
+};
+
+// --- DRAFT FUNCTIONS ---
+
+export const saveDraft = async (mobile, formData, currentPage, draftId = null) => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "https://gst-fastapi-api-1.onrender.com";
+    
+    // If draftId exists, we use PUT to update
+    const url = draftId 
+        ? `${apiBase}${ENDPOINTS.DRAFTS}/${draftId}`
+        : `${apiBase}${ENDPOINTS.DRAFTS}`;
+    
+    const method = draftId ? "PUT" : "POST";
+
+    const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            mobile_number: mobile,
+            form_data: formData,
+            current_page: currentPage,
+            status: "draft"
+        }),
+    });
+
+    return await response.json();
+};
+
+export const getDraftsByMobile = async (mobile) => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "https://gst-fastapi-api-1.onrender.com";
+    const url = `${apiBase}${ENDPOINTS.DRAFTS}/${mobile}`;
+    return await smartFetch(url, { useProxy: false, defaultData: [] });
+};
+
+export const getDraftById = async (id) => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "https://gst-fastapi-api-1.onrender.com";
+    const url = `${apiBase}${ENDPOINTS.DRAFTS}/id/${id}`;
+    return await smartFetch(url, { useProxy: false });
+};
+
+export const deleteDraft = async (id) => {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "https://gst-fastapi-api-1.onrender.com";
+    const url = `${apiBase}${ENDPOINTS.DRAFTS}/${id}`;
+    const response = await fetch(url, { method: "DELETE" });
+    return await response.json();
 };
 
 export const extractDocument = async (docType, fileBase64, mimeType) => {

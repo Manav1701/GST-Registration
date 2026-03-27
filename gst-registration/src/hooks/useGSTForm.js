@@ -8,6 +8,11 @@ import {
   updateGSTForm,
   getSubmissions,
   getSubmission,
+  saveDraft,
+  getDraftsByMobile,
+  getDraftById,
+  getSubmissionsByMobile,
+  deleteDraft,
 } from "../api/gstApi.js";
 
 // RECURSIVE SEARCH: Dives deep into any object to find a specific key-value pair
@@ -56,7 +61,17 @@ export function useGSTForm() {
     }
   });
 
+  const [currentDraftId, setCurrentDraftId] = useState(() => {
+    try {
+      const savedId = localStorage.getItem("gst_draft_id");
+      return savedId ? parseInt(savedId, 10) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [draftsList, setDraftsList] = useState([]);
+  const [submissionsList, setSubmissionsList] = useState([]);
 
   const [contactInfo] = useState(() => {
     try {
@@ -84,17 +99,20 @@ export function useGSTForm() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
       if (currentSubmissionId) {
-        localStorage.setItem(
-          "gst_submission_id",
-          currentSubmissionId.toString()
-        );
+        localStorage.setItem("gst_submission_id", currentSubmissionId.toString());
       } else {
         localStorage.removeItem("gst_submission_id");
+      }
+      
+      if (currentDraftId) {
+        localStorage.setItem("gst_draft_id", currentDraftId.toString());
+      } else {
+        localStorage.removeItem("gst_draft_id");
       }
     } catch {
       /* skip if quota full */
     }
-  }, [formData, currentSubmissionId]);
+  }, [formData, currentSubmissionId, currentDraftId]);
 
   const computeErrors = useCallback((data) => {
     const errs = {};
@@ -160,46 +178,60 @@ export function useGSTForm() {
   }, []);
 
   const fetchDrafts = useCallback(async (mobile) => {
+    if (!mobile) {
+      setDraftsList([]);
+      return;
+    }
     try {
-      if (!mobile) {
-        setDraftsList([]);
-        return;
-      }
-
-      // FETCH ALL from existing API
-      const allSubmissions = await getSubmissions();
-
-      // 1. FILTER: Find all submissions that contain the target _contact_mobile anywhere in their structure
-      const filtered = allSubmissions.filter((s) => {
-        const val = findKeyDeep(s, "_contact_mobile");
-        return String(val || "") === String(mobile);
-      });
-
-      // 2. MAP: Extract the most meaningful Label for the dropdown from the matched records
-      const drafts = filtered.map((s) => {
-        const payload = getFieldsRecursive(s);
-        const nameText =
-          payload.legal_name ||
-          s.legal_name ||
-          payload.trade_name ||
-          s.trade_name ||
-          payload.name_first ||
-          `Draft #${s.id}`;
-
-        return {
-          id: s.id,
-          legal_name: String(nameText).toUpperCase(),
-        };
-      });
-
-      setDraftsList(drafts);
+      const drafts = await getDraftsByMobile(mobile);
+      setDraftsList(drafts || []);
     } catch (err) {
-      console.error("Failed to load drafts from submissions:", err);
+      console.error("Failed to load drafts:", err);
       setDraftsList([]);
     }
   }, []);
 
+  const fetchSubmissionsByM = useCallback(async (mobile) => {
+    if (!mobile) {
+      setSubmissionsList([]);
+      return;
+    }
+    try {
+      const subs = await getSubmissionsByMobile(mobile);
+      setSubmissionsList(subs || []);
+    } catch (err) {
+      console.error("Failed to load submissions:", err);
+      setSubmissionsList([]);
+    }
+  }, []);
+
   const loadDraft = useCallback(async (id) => {
+    if (!id) return;
+    try {
+      setIsSubmitting(true);
+      const draft = await getDraftById(id);
+      if (draft && draft.form_data) {
+          setFormData({ ...INITIAL_STATE, ...draft.form_data });
+          setCurrentDraftId(id);
+          setActiveTab(draft.current_page || 0);
+          
+          // Clear current submission ID if we are switching to a draft
+          setCurrentSubmissionId(null);
+          localStorage.removeItem("gst_submission_id");
+          
+          setErrors({});
+          setTouched({});
+          setTabStatus({});
+      }
+    } catch (err) {
+      console.error("Failed to load draft:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, []);
+
+  // New function to load a SUBMISSION for editing
+  const loadSubmission = useCallback(async (id) => {
     if (!id) return;
     try {
       setIsSubmitting(true);
@@ -299,22 +331,19 @@ export function useGSTForm() {
           "raw_data",
         ].forEach((k) => delete processed[k]);
 
-        console.log("🛠️ DEBUG: Loaded from DB (Raw):", raw);
-        console.log("🛠️ DEBUG: Processed for Form:", processed);
-
         // Clean merge: INITIAL_STATE as base, then DB values on top
-        // No ...prev — avoids old/stale state polluting the loaded draft
         const nextData = {
           ...INITIAL_STATE,
           ...processed,
         };
         setFormData(nextData);
         setCurrentSubmissionId(id);
+        setCurrentDraftId(null);
         
-        // EXPLICIT PERSIST: Guarantee localStorage is updated before navigation
+        // EXPLICIT PERSIST
         localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData));
         localStorage.setItem("gst_submission_id", String(id));
-        localStorage.setItem("gst_submission_name", String(nextData.legal_name || ""));
+        localStorage.removeItem("gst_draft_id");
         
         setActiveTab(0);
         setErrors({});
@@ -322,7 +351,7 @@ export function useGSTForm() {
         setTabStatus({});
       }
     } catch (err) {
-      console.error("Failed to populate form from submission:", err);
+      console.error("Failed to load submission:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -372,30 +401,68 @@ export function useGSTForm() {
     [formData, computeErrors]
   );
 
+  const saveDraftToDB = useCallback(async (tabIdx) => {
+    // Determine mobile number for identification
+    const mobile = formData.mobile || formData._contact_mobile || contactInfo.mobile;
+    if (!mobile) return null;
+
+    try {
+        // CRITICAL FIX: If we are CURRENTLY editing a previously submitted record,
+        // we should update that record directly, NOT create a new draft.
+        if (currentSubmissionId) {
+            console.log("Syncing changes back to Submission #" + currentSubmissionId);
+            return await updateGSTForm(currentSubmissionId, formData, contactInfo);
+        }
+
+        // Otherwise, save to Drafts table
+        const result = await saveDraft(mobile, formData, tabIdx, currentDraftId);
+        if (result.id && !currentDraftId) {
+            setCurrentDraftId(result.id);
+            // Also persist to localStorage so it's not lost on refresh
+            localStorage.setItem("gst_draft_id", String(result.id));
+        }
+        return result;
+    } catch (err) {
+        console.error("Save Failed:", err);
+        return null;
+    }
+  }, [formData, contactInfo.mobile, currentDraftId, currentSubmissionId]);
+
   const handleSaveContinue = useCallback(
-    (activeTabIdx, totalTabs) => {
+    async (activeTabIdx, totalTabs, isContinue = true) => {
       if (errors.apb_notice) {
         setErrors((prev) => {
           const { apb_notice, ...rest } = prev;
           return rest;
         });
       }
-      const errCount = touchAllInTab(activeTabIdx);
-      if (errCount > 0) {
-        setShowTabWarning(true);
-        setTimeout(() => setShowTabWarning(false), 3000);
-        return false;
-      }
-      setTabStatus((prev) => ({ ...prev, [activeTabIdx]: "complete" }));
-      if (activeTabIdx < totalTabs - 1) {
-        setActiveTab(activeTabIdx + 1);
+
+      if (isContinue) {
+          const errCount = touchAllInTab(activeTabIdx);
+          if (errCount > 0) {
+            setShowTabWarning(true);
+            setTimeout(() => setShowTabWarning(false), 3000);
+            return false;
+          }
+          setTabStatus((prev) => ({ ...prev, [activeTabIdx]: "complete" }));
+          
+          // AUTO-SYNC DATA on Continue
+          await saveDraftToDB(activeTabIdx + 1);
+
+          if (activeTabIdx < totalTabs - 1) {
+            setActiveTab(activeTabIdx + 1);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } else {
+            navigate("/review");
+          }
+          return true;
       } else {
-        navigate("/review");
+          // JUST SAVE (Manual Save)
+          const res = await saveDraftToDB(activeTabIdx);
+          return !!res;
       }
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return true;
     },
-    [touchAllInTab, navigate, errors.apb_notice]
+    [touchAllInTab, navigate, errors.apb_notice, saveDraftToDB]
   );
 
   const handleSubmit = useCallback(async () => {
@@ -414,15 +481,20 @@ export function useGSTForm() {
         await submitGSTForm(formData, contactInfo);
       }
 
-      localStorage.setItem(
-        STORAGE_KEY + "_submitted",
-        JSON.stringify(formData)
-      );
+      // Cleanup Draft if exists
+      if (currentDraftId) {
+          await deleteDraft(currentDraftId);
+      }
+
+      localStorage.setItem(STORAGE_KEY + "_submitted", JSON.stringify(formData));
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("gst_submission_id");
+      localStorage.removeItem("gst_draft_id");
       localStorage.removeItem("gst_stage");
-      sessionStorage.removeItem("gst_sidebar_refs"); // Clear sidebar reference docs
+      sessionStorage.removeItem("gst_sidebar_refs");
+      
       setCurrentSubmissionId(null);
+      setCurrentDraftId(null);
       navigate("/submitted");
     } catch (err) {
       setApiError(err.message || "Failed to submit. Please try again.");
@@ -436,36 +508,42 @@ export function useGSTForm() {
     computeErrors,
     navigate,
     currentSubmissionId,
+    currentDraftId,
+    deleteDraft,
   ]);
 
   const resetForm = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("gst_stage");
     localStorage.removeItem("gst_submission_id");
+    localStorage.removeItem("gst_draft_id");
     localStorage.removeItem("gst_contact");
     localStorage.removeItem("gst_otp_verified");
     setFormData(INITIAL_STATE);
     setCurrentSubmissionId(null);
+    setCurrentDraftId(null);
     setActiveTab(0);
     setTouched({});
     setErrors({});
     setTabStatus({});
     navigate("/");
-  }, [navigate]);
+  }, [navigate, INITIAL_STATE]);
 
   // Clears the selected draft WITHOUT full reset — stays on the form page so
   // user can start filling a brand new registration after reviewing an old one.
   const clearDraft = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("gst_submission_id");
+    localStorage.removeItem("gst_draft_id");
     localStorage.removeItem("gst_submission_name");
     setFormData(INITIAL_STATE);
     setCurrentSubmissionId(null);
+    setCurrentDraftId(null);
     setActiveTab(0);
     setTouched({});
     setErrors({});
     setTabStatus({});
-  }, []);
+  }, [INITIAL_STATE]);
 
   const addPromoter = useCallback(() => {
     setFormData((prev) => {
@@ -519,9 +597,13 @@ export function useGSTForm() {
     computeErrors,
     fetchAddressByPin,
     fetchDrafts,
+    fetchSubmissionsByM,
     loadDraft,
+    loadSubmission,
     draftsList,
+    submissionsList,
     currentSubmissionId,
+    currentDraftId,
     addPromoter,
     removePromoter,
   };

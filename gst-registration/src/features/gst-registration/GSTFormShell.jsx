@@ -26,10 +26,14 @@ export default function GSTFormShell() {
     getTabErrors,
     fetchAddressByPin,
     fetchDrafts,
+    fetchSubmissionsByM,
     loadDraft,
+    loadSubmission,
     clearDraft,
     draftsList,
+    submissionsList,
     currentSubmissionId,
+    currentDraftId,
     resetForm,
     addPromoter,
     removePromoter,
@@ -41,6 +45,7 @@ export default function GSTFormShell() {
     import.meta.env.VITE_DEV ? "docs" : "pages"
   );
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const [saveMessage, setSaveMessage] = useState("");
 
   // Persistent Sidebar Reference Docs
   const [sidebarRefDocs, setSidebarRefDocs] = useState(() => {
@@ -157,13 +162,13 @@ export default function GSTFormShell() {
     e.target.value = "";
   };
 
-  // Load existing submissions list for this specific mobile number or name
+  // Handle Save Message Timeout
   useEffect(() => {
-    // 1. Try saved contact info
-    // 2. Try current form values (Live Search)
-    const searchParam = contactInfo.mobile;
-    fetchDrafts(searchParam);
-  }, [fetchDrafts, contactInfo.mobile, formData.mobile, formData.legal_name]);
+    if (saveMessage) {
+      const t = setTimeout(() => setSaveMessage(""), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [saveMessage]);
 
   // Sync active tab to sessionStorage so MainLayout progress bar can read it
   useEffect(() => {
@@ -798,18 +803,37 @@ export default function GSTFormShell() {
               >
                 {currentSubmissionId
                   ? "📝 Updating Entry #" + currentSubmissionId
+                  : currentDraftId
+                  ? "💾 Editing Draft #" + currentDraftId
                   : "🆕 New Registration"}
               </div>
-              <h2
-                style={{
-                  fontSize: 20,
-                  fontWeight: 800,
-                  color: "#1E293B",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {TABS[activeTab].label}
-              </h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h2
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 800,
+                    color: "#1E293B",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {TABS[activeTab].label}
+                </h2>
+                <button
+                  onClick={() => navigate("/selection")}
+                  style={{
+                    padding: "4px 10px",
+                    background: "#F1F5F9",
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 6,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "#64748B",
+                    cursor: "pointer",
+                  }}
+                >
+                  Change Record
+                </button>
+              </div>
             </div>
           </div>
           {currentSubmissionId && (
@@ -916,37 +940,74 @@ export default function GSTFormShell() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => handleSaveContinue(activeTab, TABS.length)}
-            className="nav-btn"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              padding: "10px 22px",
-              background: "linear-gradient(135deg,#1B4FD8,#2563EB)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 9,
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(27,79,216,0.28)",
-            }}
-          >
-            {activeTab < TABS.length - 1 ? "Save & Continue" : "Go to Review"}
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {saveMessage && (
+                <div style={{ 
+                    fontSize: 12, 
+                    fontWeight: 700, 
+                    color: "#059669", 
+                    background: "#ECFDF5", 
+                    padding: "6px 12px", 
+                    borderRadius: 8,
+                    animation: "fadeIn 0.3s"
+                }}>
+                    ✓ {saveMessage}
+                </div>
+            )}
+            
+            <button
+                type="button"
+                onClick={async () => {
+                   const ok = await handleSaveContinue(activeTab, TABS.length, false);
+                   if (ok) setSaveMessage("Draft Saved Successfully");
+                }}
+                className="nav-btn"
+                style={{
+                    padding: "10px 20px",
+                    border: "1.5px solid #1B4FD8",
+                    background: "#fff",
+                    borderRadius: 9,
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    color: "#1B4FD8",
+                    cursor: "pointer",
+                }}
             >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
+                Save Draft
+            </button>
+
+            <button
+                type="button"
+                onClick={() => handleSaveContinue(activeTab, TABS.length, true)}
+                className="nav-btn"
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    padding: "10px 24px",
+                    background: "linear-gradient(135deg,#1B4FD8,#2563EB)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 9,
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(27,79,216,0.28)",
+                }}
+            >
+                {activeTab < TABS.length - 1 ? "Save & Continue" : "Go to Review"}
+                <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                >
+                    <polyline points="9 18 15 12 9 6" />
+                </svg>
+            </button>
+          </div>
         </div>
       </main>
 

@@ -51,15 +51,28 @@
   gap: 0 18px;
 }
 
+.responsive-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0 16px;
+}
+
+@media (max-width: 1280px) {
+  .responsive-grid-4 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 1024px) {
-  .responsive-grid-3 {
+  .responsive-grid-3, .responsive-grid-4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
   .responsive-grid-2,
-  .responsive-grid-3 {
+  .responsive-grid-3,
+  .responsive-grid-4 {
     grid-template-columns: 1fr;
     gap: 12px 0 !important;
   }
@@ -139,6 +152,7 @@
 /* Section Card Responsive */
 .section-card-content {
   padding: 22px;
+  width: 100%;
 }
 
 @media (max-width: 640px) {

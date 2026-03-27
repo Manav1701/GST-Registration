@@ -4,32 +4,61 @@ import { useGSTForm } from "../hooks/useGSTForm.js";
 
 export default function SelectionPage() {
   const navigate = useNavigate();
-  const { draftsList, loadDraft, clearDraft, fetchDrafts, contactInfo } = useGSTForm();
+  const { draftsList, submissionsList, loadDraft, loadSubmission, clearDraft, fetchDrafts, fetchSubmissionsByM, contactInfo } = useGSTForm();
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
+  // Helper to extract name even if JSON is nested
+  const getRecordName = (record) => {
+    let data = record.form_data || record;
+    // Walk through potential nested form_data wrappers
+    while (data && data.form_data && typeof data.form_data === "object") {
+      data = data.form_data;
+    }
+    
+    const name = data?.legal_name || data?.trade_name;
+    if (name && name.trim().length > 0) return name;
+    
+    // Fallback if no name is entered yet
+    return `New Application (#${record.id || 'Draft'})`;
+  };
+
   useEffect(() => {
-    // Ensure we have the latest drafts for this user
+    // Ensure we have the latest drafts and submissions for this user
     if (contactInfo.mobile) {
       fetchDrafts(contactInfo.mobile);
+      fetchSubmissionsByM(contactInfo.mobile);
     }
-  }, [fetchDrafts, contactInfo.mobile]);
+  }, [fetchDrafts, fetchSubmissionsByM, contactInfo.mobile]);
 
-  const filteredDrafts = useMemo(() => {
-    if (!searchTerm) return draftsList;
-    return draftsList.filter((d) =>
-      d.legal_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(d.id).includes(searchTerm)
-    );
-  }, [draftsList, searchTerm]);
+  // Merge lists for searching
+  const combinedRecords = useMemo(() => {
+    const list = [
+      ...draftsList.map(d => ({ ...d, type: 'draft' })),
+      ...submissionsList.map(s => ({ ...s, type: 'submitted' }))
+    ];
+    
+    if (!searchTerm) return list;
+    
+    return list.filter((r) => {
+        const name = getRecordName(r).toLowerCase();
+        const id = String(r.id);
+        const term = searchTerm.toLowerCase();
+        return name.includes(term) || id.includes(term);
+    });
+  }, [draftsList, submissionsList, searchTerm]);
 
   const handleNewRegistration = async () => {
     await clearDraft();
     navigate("/documents");
   };
 
-  const handleSelectDraft = async (id) => {
-    await loadDraft(id);
+  const handleSelectRecord = async (record) => {
+    if (record.type === 'draft') {
+        await loadDraft(record.id);
+    } else {
+        await loadSubmission(record.id);
+    }
     navigate("/documents");
   };
 
@@ -66,10 +95,10 @@ export default function SelectionPage() {
           </svg>
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "#1E293B", letterSpacing: "-0.02em" }}>
-          Welcome back
+          Application Manager
         </h1>
         <p style={{ fontSize: 15, color: "#64748B", marginTop: 8, fontWeight: 500 }}>
-          Choose how you would like to proceed with your GST registration
+          Manage your drafts and submitted GST applications for <b>{contactInfo.mobile}</b>
         </p>
       </div>
 
@@ -81,6 +110,8 @@ export default function SelectionPage() {
           maxWidth: 900,
           width: "100%",
           animation: "fadeInUp 0.5s ease both 0.1s",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         {/* Card 1: New Registration */}
@@ -126,10 +157,10 @@ export default function SelectionPage() {
               color: "#1B4FD8",
             }}
           >
-            ➕
+            ✨
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1E293B", marginBottom: 12 }}>
-            New Registration
+            New registration
           </h2>
           <p style={{ fontSize: 13.5, color: "#64748B", lineHeight: 1.6, marginBottom: 24 }}>
             Start a fresh application from scratch. All previously entered data for this session will be cleared.
@@ -137,7 +168,7 @@ export default function SelectionPage() {
           <div
             style={{
               marginTop: "auto",
-              padding: "10px 20px",
+              padding: "10px 24px",
               background: "#1B4FD8",
               color: "#fff",
               borderRadius: 10,
@@ -177,17 +208,17 @@ export default function SelectionPage() {
                 color: "#059669",
               }}
             >
-              🔄
+              📂
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1E293B", marginBottom: 12 }}>
-              Update Submitted Data
+              Records for {contactInfo.mobile}
             </h2>
             <p style={{ fontSize: 13.5, color: "#64748B", lineHeight: 1.6, marginBottom: 24 }}>
-              Continue working on a previously saved application. Search for a record below.
+              Continue working on a previously saved application or view submitted results.
             </p>
           </div>
 
-          <div style={{ position: "relative", width: "100%" }}>
+          <div style={{ position: "relative", width: "100%", zIndex: showDropdown ? 50 : 1 }}>
             <div
               style={{
                 position: "absolute",
@@ -205,7 +236,7 @@ export default function SelectionPage() {
             </div>
             <input
               type="text"
-              placeholder="Search by Name or ID..."
+              placeholder="Search by Legal Name or ID..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -224,11 +255,9 @@ export default function SelectionPage() {
                 outline: "none",
                 transition: "all 0.2s",
               }}
-              onFocusCapture={(e) => (e.target.style.borderColor = "#1B4FD8")}
-              onBlurCapture={(e) => (e.target.style.borderColor = "#E2E8F0")}
             />
 
-            {showDropdown && (searchTerm || draftsList.length > 0) && (
+            {showDropdown && (searchTerm || combinedRecords.length > 0) && (
               <div
                 style={{
                   position: "absolute",
@@ -239,17 +268,17 @@ export default function SelectionPage() {
                   borderRadius: 12,
                   boxShadow: "0 10px 25px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)",
                   border: "1px solid #E2E8F0",
-                  maxHeight: 280,
+                  maxHeight: 320,
                   overflowY: "auto",
-                  zIndex: 100,
+                  zIndex: 1000,
                   padding: 6,
                 }}
               >
-                {filteredDrafts.length > 0 ? (
-                  filteredDrafts.map((draft) => (
+                {combinedRecords.length > 0 ? (
+                  combinedRecords.map((record) => (
                     <div
-                      key={draft.id}
-                      onClick={() => handleSelectDraft(draft.id)}
+                      key={`${record.type}-${record.id}`}
+                      onClick={() => handleSelectRecord(record)}
                       style={{
                         padding: "12px 16px",
                         borderRadius: 8,
@@ -270,7 +299,7 @@ export default function SelectionPage() {
                         style={{
                           width: 32,
                           height: 32,
-                          background: "#EEF2FF",
+                          background: record.type === 'draft' ? "#EEF2FF" : "#ECFDF5",
                           borderRadius: 6,
                           display: "flex",
                           alignItems: "center",
@@ -278,7 +307,7 @@ export default function SelectionPage() {
                           fontSize: 14,
                         }}
                       >
-                        👤
+                         {record.type === 'draft' ? "📝" : "✅"}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
@@ -291,13 +320,15 @@ export default function SelectionPage() {
                             textOverflow: "ellipsis",
                           }}
                         >
-                          {draft.legal_name}
+                          {getRecordName(record)}
                         </div>
                         <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>
-                          Record ID: #{draft.id}
+                          ID: #{record.id} • <span style={{ color: record.type === 'draft' ? "#1B4FD8" : "#059669" }}>
+                            {record.type.toUpperCase()}
+                          </span>
                         </div>
                       </div>
-                      <div style={{ fontSize: 12, color: "#1B4FD8", fontWeight: 700 }}>Select →</div>
+                      <div style={{ fontSize: 12, color: "#1B4FD8", fontWeight: 700 }}>Resmue →</div>
                     </div>
                   ))
                 ) : (
@@ -325,7 +356,7 @@ export default function SelectionPage() {
         </div>
       </div>
 
-      <div style={{ marginTop: 40, animation: "fadeInUp 0.6s ease both 0.2s" }}>
+      <div style={{ marginTop: 40, animation: "fadeInUp 0.6s ease both 0.2s", position: "relative", zIndex: 1 }}>
          <button 
            onClick={() => navigate("/otp")}
            style={{
