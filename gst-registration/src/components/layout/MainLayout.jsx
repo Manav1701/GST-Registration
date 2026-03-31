@@ -60,7 +60,7 @@ export default function MainLayout({ children, showReviewHeader }) {
                     </span>
                   </div>
                   <button 
-                    onClick={()=>navigate("/selection")}
+                    onClick={()=>navigate("/gst/selection")}
                     style={{ 
                       background: "#fff", 
                       border: "1px solid #C7D9FF", 
@@ -97,14 +97,14 @@ export default function MainLayout({ children, showReviewHeader }) {
               </div>
             )}
             {isReview ? (
-              <button onClick={()=>navigate("/form")} className="nav-btn"
+              <button onClick={()=>navigate("/gst/form")} className="nav-btn"
                 style={{ display:"flex", alignItems:"center", gap:7, padding:"8px 16px", border:"1.5px solid #E2E8F0", background:"#fff", borderRadius:8, fontSize:13, fontWeight:600, color:"#374151", cursor:"pointer" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
                 <span className="hide-mobile">Back to Form</span>
                 <span className="show-mobile" style={{ display:"none" }}>Back</span>
               </button>
             ) : (
-              <button onClick={()=>navigate("/review")} className="nav-btn"
+              <button onClick={()=>navigate("/gst/review")} className="nav-btn"
                 style={{ display:"flex", alignItems:"center", gap:7, padding:"8px 16px", background:"linear-gradient(135deg,#059669,#10B981)", color:"#fff", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", boxShadow:"0 3px 10px rgba(5,150,105,0.3)" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
                 <span className="hide-mobile">Review & Submit</span>

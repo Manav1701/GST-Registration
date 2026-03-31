@@ -9,63 +9,74 @@ import SelectionPage from "../pages/SelectionPage.jsx";
 import DocumentUploadPage from "../pages/DocumentUploadPage.jsx";
 import ReviewPage from "../pages/ReviewPage.jsx";
 import SubmittedPage from "../pages/SubmittedPage.jsx";
+import ServiceSelectionPage from "../pages/ServiceSelectionPage.jsx";
 import GSTFormShell from "../features/gst-registration/GSTFormShell.jsx";
 import MainLayout from "../components/layout/MainLayout.jsx";
+import ADTLayout from "../components/layout/ADTLayout.jsx";
 
-// Guard: redirect to /contact if no session data
-function RequireContact({ children }) {
+// ADT Pages
+import ADTContactPage from "../pages/adt/ADTContactPage.jsx";
+import ADTOTPPage from "../pages/adt/ADTOTPPage.jsx";
+import ADTFormShell from "../features/adt-registration/ADTFormShell.jsx";
+
+// Guards
+function RequireContact({ service = "gst", children }) {
   const contact = (() => {
     try {
-      return JSON.parse(localStorage.getItem("gst_contact"));
+      return JSON.parse(localStorage.getItem(`${service}_contact`));
     } catch {
       return null;
     }
   })();
-  if (!contact?.mobile) return <Navigate to="/" replace />;
+  if (!contact?.mobile) return <Navigate to={service === "gst" ? "/gst" : "/adt"} replace />;
   return children;
 }
 
-function RequireOTP({ children }) {
-  const verified = localStorage.getItem("gst_otp_verified");
-  if (!verified) return <Navigate to="/otp" replace />;
+function RequireOTP({ service = "gst", children }) {
+  const verified = localStorage.getItem(`${service}_otp_verified`);
+  if (!verified) return <Navigate to={service === "gst" ? "/gst/otp" : "/adt/otp"} replace />;
   return children;
 }
 
 const router = createBrowserRouter([
-  { path: "/", element: <ContactPage /> },
+  // Service Selection (ROOT)
+  { path: "/", element: <ServiceSelectionPage /> },
+
+  // GST FLOW
+  { path: "/gst", element: <ContactPage /> },
   {
-    path: "/otp",
+    path: "/gst/otp",
     element: (
-      <RequireContact>
+      <RequireContact service="gst">
         <OTPPage />
       </RequireContact>
     ),
   },
   {
-    path: "/selection",
+    path: "/gst/selection",
     element: (
-      <RequireContact>
-        <RequireOTP>
+      <RequireContact service="gst">
+        <RequireOTP service="gst">
           <SelectionPage />
         </RequireOTP>
       </RequireContact>
     ),
   },
   {
-    path: "/documents",
+    path: "/gst/documents",
     element: (
-      <RequireContact>
-        <RequireOTP>
+      <RequireContact service="gst">
+        <RequireOTP service="gst">
           <DocumentUploadPage />
         </RequireOTP>
       </RequireContact>
     ),
   },
   {
-    path: "/form",
+    path: "/gst/form",
     element: (
-      <RequireContact>
-        <RequireOTP>
+      <RequireContact service="gst">
+        <RequireOTP service="gst">
           <MainLayout>
             <GSTFormShell />
           </MainLayout>
@@ -74,10 +85,10 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/review",
+    path: "/gst/review",
     element: (
-      <RequireContact>
-        <RequireOTP>
+      <RequireContact service="gst">
+        <RequireOTP service="gst">
           <MainLayout showReviewHeader>
             <ReviewPage />
           </MainLayout>
@@ -85,7 +96,32 @@ const router = createBrowserRouter([
       </RequireContact>
     ),
   },
-  { path: "/submitted", element: <SubmittedPage /> },
+  { path: "/gst/submitted", element: <SubmittedPage /> },
+
+  // ADT FLOW
+  { path: "/adt", element: <ADTContactPage /> },
+  {
+    path: "/adt/otp",
+    element: (
+      <RequireContact service="adt">
+        <ADTOTPPage />
+      </RequireContact>
+    ),
+  },
+  {
+    path: "/adt/form",
+    element: (
+      <RequireContact service="adt">
+        <RequireOTP service="adt">
+          <ADTLayout>
+            <ADTFormShell />
+          </ADTLayout>
+        </RequireOTP>
+      </RequireContact>
+    ),
+  },
+
+  // Fallback
   { path: "*", element: <Navigate to="/" replace /> },
 ]);
 

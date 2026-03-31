@@ -681,7 +681,7 @@ export default function GSTFormShell() {
               style={{ padding: "10px 18px", borderTop: "1px solid #F1F5F9" }}
             >
               <button
-                onClick={() => navigate("/documents")}
+                onClick={() => navigate("/gst/documents")}
                 style={{
                   width: "100%",
                   padding: "8px 12px",

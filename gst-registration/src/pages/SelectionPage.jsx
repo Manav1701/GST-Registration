@@ -50,7 +50,7 @@ export default function SelectionPage() {
 
   const handleNewRegistration = async () => {
     await clearDraft();
-    navigate("/documents");
+    navigate("/gst/documents");
   };
 
   const handleSelectRecord = async (record) => {
@@ -62,7 +62,7 @@ export default function SelectionPage() {
           await loadSubmission(record.id);
       }
       console.log("[SelectionPage] Record loaded successfully, navigating...");
-      navigate("/documents");
+      navigate("/gst/documents");
     } catch (err) {
       console.error("[SelectionPage] Error picking record:", err);
     }
@@ -367,7 +367,7 @@ export default function SelectionPage() {
 
       <div style={{ marginTop: 40, animation: "fadeInUp 0.6s ease both 0.2s", position: "relative", zIndex: 1 }}>
          <button 
-           onClick={() => navigate("/otp")}
+           onClick={() => navigate("/gst/otp")}
            style={{
              background: "none",
              border: "none",

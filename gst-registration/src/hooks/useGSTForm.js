@@ -463,7 +463,7 @@ export function useGSTForm() {
             setActiveTab(activeTabIdx + 1);
             window.scrollTo({ top: 0, behavior: "smooth" });
           } else {
-            navigate("/review");
+            navigate("/gst/review");
           }
           return true;
       } else {
@@ -505,7 +505,7 @@ export function useGSTForm() {
       
       setCurrentSubmissionId(null);
       setCurrentDraftId(null);
-      navigate("/submitted");
+      navigate("/gst/submitted");
     } catch (err) {
       setApiError(err.message || "Failed to submit. Please try again.");
     } finally {

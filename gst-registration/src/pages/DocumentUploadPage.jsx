@@ -100,7 +100,7 @@ export default function DocumentUploadPage() {
         /* ignore */
       }
     }
-    navigate("/form");
+    navigate("/gst/form");
   };
 
   const anyFileUploaded = Object.keys(files).length > 0;
@@ -710,7 +710,7 @@ export default function DocumentUploadPage() {
           }}
         >
           <button
-            onClick={() => navigate("/form")}
+            onClick={() => navigate("/gst/form")}
             style={{
               background: "none",
               border: "1.5px solid #E2E8F0",
